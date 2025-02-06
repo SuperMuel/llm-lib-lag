@@ -1,6 +1,7 @@
 # LLM LIB LAG (3L)
 
 ![Lag per LLM](./images/lag-per-llm.png)
+![Lag per Software](./images/lag-per-tech.png)
 
 This project aims to investigate and quantify the "knowledge gap" that exists in Large Language Models (LLMs) regarding the latest versions of programming languages, frameworks, and libraries. Because LLMs are trained on data up to a certain cutoff point, they are inherently unaware of updates released after that date. This project seeks to:
 
