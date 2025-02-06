@@ -14,7 +14,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_mistralai.chat_models import ChatMistralAI
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field, SecretStr
-from src.models import EvaluationRun, LLMConfig
+from src.models import EvaluationRun, LLMConfig, TechVersionGroundTruth
 
 
 from src.ground_thruths import GROUND_TRUTHS
@@ -75,41 +75,39 @@ assert not re.match(version_regex, "")
 RUNS_FILE = "runs.jsonl"
 
 
-def _execute():
-    with open(RUNS_FILE, "a") as f:
-        for gt in GROUND_TRUTHS:
-            print(f"{gt.software_name} - {gt.version}")
+def _execute(llm_config: LLMConfig, gt: TechVersionGroundTruth) -> EvaluationRun:
+    print(f"Ground truth: {gt.tech_name} - {gt.version}")
 
-            for llm_config in LLMS:
-                llm = initialize_llm(llm_config)
+    llm = initialize_llm(llm_config)
+    chain = prompt | llm | StrOutputParser()
 
-                t1 = time.time()
+    t1 = time.time()
+    result_str = chain.invoke({"software_name": gt.tech_name})
+    t2 = time.time()
 
-                chain = prompt | llm | StrOutputParser()
-                result_str = chain.invoke({"software_name": gt.software_name})
-                t2 = time.time()
+    # extract version from result using regex
+    version = re.search(version_regex, result_str)
+    if not version:
+        print(f"{llm_config.provider}/{llm_config.model}: {result_str}")
+        parsed_version = None
+    else:
+        parsed_version = version.group(1)
 
-                # extract version from result using regex
-                version = re.search(version_regex, result_str)
-                if not version:
-                    print(f"{llm_config.provider}/{llm_config.model}: {result_str}")
-                    parsed_version = None
-                else:
-                    parsed_version = version.group(1)
+    print(f"{llm_config.provider}/{llm_config.model}: {parsed_version}")
 
-                print(f"{llm_config.provider}/{llm_config.model}: {parsed_version}")
+    run = EvaluationRun(
+        ground_truth=gt,
+        llm_config=llm_config,
+        output=result_str,
+        parsed_version=parsed_version,
+        execution_time_seconds=t2 - t1,
+    )
 
-                run = EvaluationRun(
-                    ground_truth=gt,
-                    llm_config=llm_config,
-                    output=result_str,
-                    parsed_version=parsed_version,
-                    execution_time_seconds=t2 - t1,
-                )
+    print(
+        f"Run: {run.ground_truth.tech_name} - {run.llm_config.provider}/{run.llm_config.model} - {run.parsed_version}"
+    )
 
-                f.write(run.model_dump_json() + "\n")
-
-            print("-" * 100)
+    return run
 
 
 def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
@@ -130,7 +128,7 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
     latest_runs: dict[tuple[str, str, str], EvaluationRun] = {}
     for run in runs:
         key = (
-            run.ground_truth.software_name,
+            run.ground_truth.tech_name,
             run.llm_config.provider,
             run.llm_config.model,
         )
@@ -161,7 +159,7 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
     by_llm: dict[str, list[EvaluationRun]] = {}
 
     for run in filtered_runs:
-        software_name = run.ground_truth.software_name
+        software_name = run.ground_truth.tech_name
         llm_key = f"{run.llm_config.provider}/{run.llm_config.model}"
 
         if software_name not in by_software:
@@ -265,7 +263,7 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
                         llm_minor += 1
                 except Exception as e:
                     print(
-                        f"Error parsing version for {run.ground_truth.software_name} ({llm_key}): {e}"
+                        f"Error parsing version for {run.ground_truth.tech_name} ({llm_key}): {e}"
                     )
 
         print(f"    Total Runs: {llm_total}")
@@ -294,7 +292,50 @@ def load_runs_from_jsonl(filepath: str) -> list[EvaluationRun]:
     return runs
 
 
+def get_missing_runs(
+    pairs: list[tuple[LLMConfig, TechVersionGroundTruth]], runs: list[EvaluationRun]
+) -> list[tuple[LLMConfig, TechVersionGroundTruth]]:
+    """
+    Returns the list of (LLMConfig, TechVersionGroundTruth) pairs for which there is no
+    corresponding run in the provided runs list.
+
+    Args:
+        pairs: A list of tuples containing (LLMConfig, TechVersionGroundTruth)
+        runs: A list of existing EvaluationRun objects.
+
+    Returns:
+        A list of tuples (LLMConfig, TechVersionGroundTruth) that do not have a corresponding run yet.
+    """
+    # Build a set of keys for existing runs
+    existing_keys = {(run.llm_config, run.ground_truth) for run in runs}
+
+    missing: list[tuple[LLMConfig, TechVersionGroundTruth]] = []
+    for llm, gt in pairs:
+        if (llm, gt) not in existing_keys:
+            missing.append((llm, gt))
+
+    return missing
+
+
 if __name__ == "__main__":
     runs = load_runs_from_jsonl(RUNS_FILE)
+
+    to_execute = get_missing_runs(
+        [(llm, gt) for llm in LLMS for gt in GROUND_TRUTHS], runs
+    )
+    if to_execute:
+        print(f"Executing {len(to_execute)} runs")
+    else:
+        print("No runs to execute")
+
+    for llm, gt in to_execute:
+        run = _execute(llm, gt)
+        runs.append(run)
+
+    with open(RUNS_FILE, "a") as f:
+        for run in runs:
+            f.write(run.model_dump_json() + "\n")
+
+    print(f"Wrote {len(runs)} runs to {RUNS_FILE}")
 
     evaluate_runs(runs)

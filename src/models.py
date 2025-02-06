@@ -1,4 +1,4 @@
-from pydantic import BaseModel, HttpUrl, Field
+from pydantic import BaseModel, ConfigDict, HttpUrl, Field
 from datetime import date, datetime, UTC
 from typing import Optional, Literal
 
@@ -12,7 +12,9 @@ class TechVersionGroundTruth(BaseModel):
     Represents the ground truth version information for a piece of software.
     """
 
-    software_name: str = Field(
+    model_config = ConfigDict(frozen=True)
+
+    tech_name: str = Field(
         ...,
         description="The name of the software (e.g., 'Python', 'Django', 'requests')",
         min_length=1,
@@ -30,18 +32,10 @@ class TechVersionGroundTruth(BaseModel):
         default=None, description="The URL where the version information was obtained"
     )
 
-    timestamp: datetime = Field(
-        default_factory=utc_factory,
-        description="The date and time when the data was collected",
-    )
-
-
-class Message(BaseModel):
-    role: Literal["system", "user", "assistant"]
-    content: str
-
 
 class LLMConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     provider: str = Field(
         ...,
         description="LLM provider (e.g., 'anthropic', 'openai')",
