@@ -7,7 +7,10 @@ requires-python = ">=3.12"
 dependencies = [
     "langchain>=0.3.17",
     "langchain-anthropic>=0.3.6",
+    "langchain-google-genai>=2.0.9",
     "langchain-openai>=0.3.3",
+    "pydantic>=2.10.6",
+    "python-dotenv>=1.0.1",
 ]
 
 [dependency-groups]
@@ -22,8 +25,12 @@ select = [
 
     "UP006", # foo: list[int] = [1, 2, 3] instead of foo: List[int] = [1, 2, 3]
     "UP007", # Use X | Y for type annotations
+    "UP017",
 
     "UP038", # Use isinstance(x, int | float) instead of isinstance(x, (int, float))
+    "UP040",
+
+    "UP045", # Use X | None instead of Optional[X]
 
     "ANN001", # Checks that function arguments have type annotations.
     "ANN201", # Missing return type annotation for public function {name}
@@ -32,7 +39,4 @@ select = [
 
     "T20", # Find uses of 'print' or 'pprint'
 
-    "D101", # Missing docstring in public class
-    "D102", # Missing docstring in public method
-    "D103", # Missing docstring in public function
 ]
