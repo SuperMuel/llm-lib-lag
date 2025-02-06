@@ -4,7 +4,13 @@ import time
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
-from src.models import LLMConfig, EvaluationRun, TechVersionGroundTruth
+from src.fetchers import fetch_version_date
+from src.models import (
+    LLMConfig,
+    EvaluationRun,
+    LibraryIdentifier,
+    TechVersionGroundTruth,
+)
 from packaging.version import Version, parse
 
 
@@ -75,12 +81,32 @@ def run_single_evaluation(
 
     print(f"{llm_config.provider}/{llm_config.model}: {parsed_version or result_str}")
 
+    if (
+        parsed_version
+        and ground_truth.release_date
+        and isinstance(ground_truth.tech, LibraryIdentifier)
+    ):
+        try:
+            parsed_version_date = fetch_version_date(ground_truth.tech, parsed_version)
+            lag_days = (ground_truth.release_date - parsed_version_date.date()).days
+            parsed_version_exists = True
+        except Exception as e:
+            print(f"Error fetching version date: {e}")
+            lag_days = None
+            parsed_version_exists = False
+        print(f"Lag days: {lag_days}")
+    else:
+        lag_days = None
+        parsed_version_exists = None
+
     run = EvaluationRun(
         ground_truth=ground_truth,
         llm_config=llm_config,
         output=result_str,
         parsed_version=parsed_version,
+        parsed_version_exists=parsed_version_exists,
         execution_time_seconds=elapsed,
+        lag_days=lag_days,
     )
 
     print(

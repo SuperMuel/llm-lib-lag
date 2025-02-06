@@ -98,6 +98,16 @@ class EvaluationRun(BaseModel):
         examples=["3.12.1"],
     )
 
+    parsed_version_exists: bool | None = Field(
+        default=None,
+        description="If we could verify that the parsed version exists in the package manager registry",
+    )
+
+    lag_days: int | None = Field(
+        default=None,
+        description="Lag in days between the release date of the ground truth and the release date of the parsed version",
+    )
+
     # tokens_used: int | None = Field(
     #     None, description="Number of tokens used in the conversation"
     # )

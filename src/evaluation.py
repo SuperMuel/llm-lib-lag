@@ -1,6 +1,7 @@
 from typing import Sequence
 from packaging.version import parse
 from src.models import EvaluationRun
+import statistics  # Import the statistics module
 
 
 def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
@@ -90,6 +91,7 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
         software_exact = 0
         software_major = 0
         software_minor = 0
+        software_lags = []  # List to store lag_days for this software
 
         for run in software_runs:
             if run.parsed_version:
@@ -106,6 +108,8 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
                         and gt_version.minor == response_version.minor
                     ):
                         software_minor += 1
+                    if run.lag_days is not None:  # Check if lag_days is available
+                        software_lags.append(run.lag_days)
                 except Exception as e:
                     print(
                         f"Error parsing version for {name} "
@@ -125,6 +129,12 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
             f"    Minor Matches: {software_minor} "
             f"({software_minor / software_total:.2%})"
         )
+        if software_lags:
+            print(f"    Average Lag (days): {statistics.mean(software_lags):.2f}")
+            print(f"    Median Lag (days): {statistics.median(software_lags):.2f}")
+            print(f"    Max Lag (days): {max(software_lags)}")
+        else:
+            print("    Lag data not available for this software.")
 
     # Breakdown by LLM
     print("\nResults by LLM:")
@@ -135,6 +145,7 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
         llm_major = 0
         llm_minor = 0
         llm_total_time = 0.0
+        llm_lags = []  # List to store lag_days for this LLM
 
         for run in llm_runs:
             llm_total_time += run.execution_time_seconds
@@ -152,6 +163,8 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
                         and gt_version.minor == response_version.minor
                     ):
                         llm_minor += 1
+                    if run.lag_days is not None:
+                        llm_lags.append(run.lag_days)
                 except Exception as e:
                     print(
                         f"Error parsing version for {run.ground_truth.tech.name} ({run.llm_config.provider}/{run.llm_config.model}): {e}"
@@ -162,3 +175,9 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
         print(f"    Major Matches: {llm_major} ({llm_major / llm_total:.2%})")
         print(f"    Minor Matches: {llm_minor} ({llm_minor / llm_total:.2%})")
         print(f"    Average Execution Time: {llm_total_time / llm_total:.2f} seconds")
+        if llm_lags:
+            print(f"    Average Lag (days): {statistics.mean(llm_lags):.2f}")
+            print(f"    Median Lag (days): {statistics.median(llm_lags):.2f}")
+            print(f"    Max Lag (days): {max(llm_lags)}")
+        else:
+            print("    Lag data not available for this LLM.")
