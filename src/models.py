@@ -7,7 +7,7 @@ def utc_factory() -> datetime:
     return datetime.now(UTC)
 
 
-class SoftwareVersionGroundTruth(BaseModel):
+class TechVersionGroundTruth(BaseModel):
     """
     Represents the ground truth version information for a piece of software.
     """
@@ -26,8 +26,8 @@ class SoftwareVersionGroundTruth(BaseModel):
         default=None, description="The official release date of the version"
     )
 
-    url: HttpUrl = Field(
-        ..., description="The URL where the version information was obtained"
+    url: HttpUrl | None = Field(
+        default=None, description="The URL where the version information was obtained"
     )
 
     timestamp: datetime = Field(
@@ -62,7 +62,7 @@ class LLMConfig(BaseModel):
 class EvaluationRun(BaseModel):
     """Represents a single evaluation run of an LLM model on a specific library/framework."""
 
-    ground_truth: SoftwareVersionGroundTruth
+    ground_truth: TechVersionGroundTruth
 
     llm_config: LLMConfig
 
