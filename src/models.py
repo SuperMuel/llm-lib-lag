@@ -1,3 +1,4 @@
+from enum import Enum
 from pydantic import BaseModel, ConfigDict, HttpUrl, Field
 from datetime import date, datetime, UTC
 from typing import Optional, Literal
@@ -7,6 +8,32 @@ def utc_factory() -> datetime:
     return datetime.now(UTC)
 
 
+class PackageManager(str, Enum):
+    NPM = "npm"
+    MAVEN = "maven"
+    RUBYGEMS = "rubygems"
+    PYPI = "pypi"
+    CARGO = "cargo"
+
+
+class Language(str, Enum):
+    PYTHON = "python"
+    JAVASCRIPT = "javascript"
+    RUBY = "ruby"
+    JAVA = "java"
+
+    @property
+    def name(self) -> str:
+        return self.value
+
+
+class LibraryIdentifier(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    package_manager: PackageManager
+    name: str = Field(..., examples=["react", "fastapi"])
+
+
 class TechVersionGroundTruth(BaseModel):
     """
     Represents the ground truth version information for a piece of software.
@@ -14,22 +41,12 @@ class TechVersionGroundTruth(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    tech_name: str = Field(
-        ...,
-        description="The name of the software (e.g., 'Python', 'Django', 'requests')",
-        min_length=1,
-    )
+    tech: LibraryIdentifier | Language
 
-    version: str = Field(
-        ..., description="The version string (e.g., '3.12.1', '5.0.2', '2.31.0')"
-    )
+    version: str = Field(..., examples=["3.12.1", "19.0.0"])
 
     release_date: date | None = Field(
         default=None, description="The official release date of the version"
-    )
-
-    url: HttpUrl | None = Field(
-        default=None, description="The URL where the version information was obtained"
     )
 
 
@@ -56,18 +73,13 @@ class LLMConfig(BaseModel):
 class EvaluationRun(BaseModel):
     """Represents a single evaluation run of an LLM model on a specific library/framework."""
 
+    model_config = ConfigDict(frozen=True)
+
     ground_truth: TechVersionGroundTruth
 
     llm_config: LLMConfig
 
     timestamp: datetime = Field(default_factory=utc_factory)
-
-    # prompt_template: str = Field(
-    #     ..., description="Template used for generating the prompt"
-    # )
-    # messages: list[Message] = Field(
-    #     ..., description="List of messages in the conversation"
-    # )
 
     # Results
     execution_time_seconds: float = Field(

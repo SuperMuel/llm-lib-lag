@@ -16,7 +16,10 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["ruff>=0.9.4"]
+dev = [
+    "ipykernel>=6.29.5",
+    "ruff>=0.9.4",
+]
 
 [tool.ruff]
 
