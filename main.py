@@ -115,7 +115,8 @@ def _execute():
 def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
     """
     Evaluates a list of EvaluationRun objects, compares the LLM responses
-    to the ground truths, and prints evaluation metrics.
+    to the ground truths, and prints evaluation metrics. For each technology/LLM
+    combination, only the latest run is considered.
 
     Args:
         runs: A list of EvaluationRun objects.
@@ -125,7 +126,31 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
         print("No evaluation runs provided.")
         return
 
-    total_runs = len(runs)
+    # First, group runs by software/LLM and keep only the latest
+    latest_runs: dict[tuple[str, str, str], EvaluationRun] = {}
+    for run in runs:
+        key = (
+            run.ground_truth.software_name,
+            run.llm_config.provider,
+            run.llm_config.model,
+        )
+        if key not in latest_runs or run.timestamp > latest_runs[key].timestamp:
+            latest_runs[key] = run
+
+    # Convert back to list, using only the latest runs
+    filtered_runs = list(latest_runs.values())
+    total_runs = len(filtered_runs)
+
+    # Add after filtering
+    total_original = len(runs)
+    total_filtered = len(filtered_runs)
+    if total_original != total_filtered:
+        print(
+            f"Filtered {total_original - total_filtered} duplicate runs, "
+            f"keeping only the latest run for each technology/LLM combination."
+        )
+
+    # Rest of the evaluation logic using filtered_runs
     exact_matches = 0
     major_matches = 0
     minor_matches = 0
@@ -135,7 +160,7 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
     by_software: dict[str, list[EvaluationRun]] = {}
     by_llm: dict[str, list[EvaluationRun]] = {}
 
-    for run in runs:
+    for run in filtered_runs:
         software_name = run.ground_truth.software_name
         llm_key = f"{run.llm_config.provider}/{run.llm_config.model}"
 
@@ -270,6 +295,6 @@ def load_runs_from_jsonl(filepath: str) -> list[EvaluationRun]:
 
 
 if __name__ == "__main__":
-    # _execute()
     runs = load_runs_from_jsonl(RUNS_FILE)
+
     evaluate_runs(runs)
