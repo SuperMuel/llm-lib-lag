@@ -1,6 +1,10 @@
 from pydantic import BaseModel, HttpUrl, Field
-from datetime import date, datetime
+from datetime import date, datetime, UTC
 from typing import Optional
+
+
+def utc_factory():
+    return datetime.now(UTC)
 
 
 class SoftwareVersionGroundTruth(BaseModel):
@@ -19,11 +23,14 @@ class SoftwareVersionGroundTruth(BaseModel):
     )
 
     release_date: date | None = Field(
-        None, description="The official release date of the version"
+        default=None, description="The official release date of the version"
     )
-    source_url: HttpUrl = Field(
-        ..., description="The URL where the version information was obtained"
-    )
+
+    # source_url: HttpUrl = Field(
+    #     ..., description="The URL where the version information was obtained"
+    # )
+
     timestamp: datetime = Field(
-        ..., description="The date and time when the data was collected"
+        default_factory=utc_factory,
+        description="The date and time when the data was collected",
     )

@@ -30,9 +30,43 @@ Version Difference: Calculate the difference (in days, weeks, or months) between
 
 Knowledge Cutoff Accuracy: If the LLM states its knowledge cutoff date, verify if that date is accurate.
 
-### Languages, Frameworks and Libraries
-- Python 
+## Languages, Frameworks and Libraries
+### Python
+- Major/Minor releases (3.9, 3.10, 3.11, 3.12, 3.13).
 - FastAPI
+- SQLAlchemy 
+
+### JavaScript
+- Latest ECMAScript versions (ES2022, ES2023, etc.)
+- Node.js LTS and Current releases.
+- Typescript ? 
+
+- Frameworks 
+    - React
+    - Vue
+    - Angular, AngularJS
+    - Svelte
+    - Next.js
+    - Nuxt.js
+    - Express
+
+### Java
+- Java SE releases (Java 17, Java 21, etc. - the LTS versions) and potentially newer, non-LTS releases.
+
+- Frameworks
+    - Spring Boot
+
+### C#
+- .NET releases (.NET 6, .NET 7, .NET 8).
+
+### Go
+- Go releases (1.20, 1.21, etc.).
+
+### C#
+- .NET releases (.NET 6, .NET 7, .NET 8).
+
+### Rust
+- Rust releases (1.70, 1.71, etc.).
 
 
 # Benchmark Data Generation (Advanced):
