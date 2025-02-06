@@ -26,9 +26,25 @@ Potentially Generate Benchmark Data: Explore the possibility of automatically ge
 
 - Minor Version Match: Percentage of responses where the major and minor versions are correct.
 
-Version Difference: Calculate the difference (in days, weeks, or months) between the LLM's reported version and the ground truth version (if release dates are available).
+- Version Difference: Calculate the difference (in days, weeks, or months) between the LLM's reported version and the ground truth version (if release dates are available).
 
-Knowledge Cutoff Accuracy: If the LLM states its knowledge cutoff date, verify if that date is accurate.
+- Knowledge Cutoff Accuracy: If the LLM states its knowledge cutoff date, verify if that date is accurate.
+
+
+
+# Usage
+
+1.  **Run Evaluations:**
+
+    ```bash
+    uv run main.py
+    ```
+
+    This script will:
+    *   Fetch the latest version information for the technologies defined in `src/ground_truths.py`.
+    *   Query the configured LLMs (defined in `main.py`) for their knowledge of the latest versions.
+    *   Store the results (including execution time and parsed version) in `runs.jsonl`.
+    *   Print a summary of the evaluation results to the console, including exact/major/minor match rates and lag statistics.
 
 ## Languages, Frameworks and Libraries
 ### Python
@@ -69,17 +85,6 @@ Knowledge Cutoff Accuracy: If the LLM states its knowledge cutoff date, verify i
 - Rust releases (1.70, 1.71, etc.).
 
 
-# Benchmark Data Generation (Advanced):
-
-Identify Changes: If you can scrape release notes or changelogs, you can potentially identify the specific changes (new features, bug fixes, API changes) introduced between versions.
-
-Generate Questions: Use an LLM to generate questions or tasks that test the LLM's knowledge of these changes. For example:
-
-"What is the new xyz function introduced in version X.Y.Z of [software_name]?"
-
-"How do you handle [specific scenario] in version X.Y.Z of [software_name] compared to version X.Y.W?"
-
-Data Format: Store the generated benchmark data in a structured format (e.g., JSON) suitable for LLM evaluation.
 
 # Setup
 
@@ -91,3 +96,21 @@ pre-commit install
 ```
 
 
+
+# Future Work
+-   Automate the updating of ground truth data (scraping, API calls).
+-   Experiment with different prompting strategies.
+-   Add more LLMs to the evaluation.
+-   Add more technologies to the evaluation.
+-   Add more metrics to the evaluation.
+-   Add more evaluation strategies.
+
+### Benchmark Data Generation (Advanced):
+
+Identify Changes: If you can scrape release notes or changelogs, you can potentially identify the specific changes (new features, bug fixes, API changes) introduced between versions.
+
+Generate Questions: Use an LLM to generate questions or tasks that test the LLM's knowledge of these changes. For example:
+
+"What is the new xyz function introduced in version X.Y.Z of [software_name]?"
+
+"How do you handle [specific scenario] in version X.Y.Z of [software_name] compared to version X.Y.W?"
