@@ -40,13 +40,6 @@ def initialize_llm(provider: str, model: str) -> BaseChatModel:
     raise ValueError(f"Provider {provider} not supported")
 
 
-class SoftwareVersionInfo(BaseModel):
-    version: str = Field(
-        ..., description="The version string (e.g., '3.12.1', '5.0.2', '2.31.0')"
-    )
-    # release_date: date
-
-
 prompt = ChatPromptTemplate.from_messages(
     [
         (
@@ -76,26 +69,14 @@ def _eval_test():
         for provider, model in LLMS:
             llm = initialize_llm(provider, model)
 
-            # chain = prompt | llm.with_structured_output(SoftwareVersionInfo)
-
-            # result = chain.invoke({"software_name": gt.software_name})
-            # assert isinstance(result, SoftwareVersionInfo), (
-            #     f"Result is not a SoftwareVersionInfo: {result}"
-            # )
-
-            # version = result.version
-
-            # Verify version format
-            # if not re.match(version_regex, result):
-            #     raise ValueError(f"Invalid version format: {result}")
-
             chain = prompt | llm | StrOutputParser()
             result = chain.invoke({"software_name": gt.software_name})
 
             # extract version from result using regex
             version = re.search(version_regex, result)
             if not version:
-                raise ValueError(f"Invalid version format: {result}")
+                print(f"{provider}/{model}: {result}")
+                continue
             version = version.group(1)
 
             print(f"{provider}/{model}: {version}")
