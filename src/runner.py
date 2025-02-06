@@ -63,8 +63,15 @@ def run_single_evaluation(
     result_str = chain.invoke({"software_name": query_input})
     elapsed = time.time() - start_time
 
-    match = re.search(version_regex, result_str)
-    parsed_version = match.group(1) if match else None
+    matches = re.finditer(version_regex, result_str)
+    versions = [match.group(1) for match in matches]
+
+    if len(versions) > 1:
+        raise ValueError(
+            f"Multiple versions found in LLM response for {query_input}: {versions}"
+        )
+
+    parsed_version = versions[0] if versions else None
 
     print(f"{llm_config.provider}/{llm_config.model}: {parsed_version or result_str}")
 

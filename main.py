@@ -87,7 +87,7 @@ def main() -> None:
         with open(RUNS_FILE, "a") as f:
             f.write(run.model_dump_json() + "\n")
 
-    print(f"Wrote {len(runs)} runs total to {RUNS_FILE}")
+        print(f"Wrote {len(runs)} runs total to {RUNS_FILE}")
 
     # Evaluate and print results
     evaluate_runs(runs)
