@@ -1,6 +1,9 @@
+import json
 import os
+from packaging.version import parse, Version
 import re
 import time
+from typing import Sequence
 
 from dotenv import load_dotenv
 from langchain.prompts import ChatPromptTemplate
@@ -109,5 +112,164 @@ def _execute():
             print("-" * 100)
 
 
+def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
+    """
+    Evaluates a list of EvaluationRun objects, compares the LLM responses
+    to the ground truths, and prints evaluation metrics.
+
+    Args:
+        runs: A list of EvaluationRun objects.
+    """
+
+    if not runs:
+        print("No evaluation runs provided.")
+        return
+
+    total_runs = len(runs)
+    exact_matches = 0
+    major_matches = 0
+    minor_matches = 0
+    total_execution_time = 0.0
+
+    # Group runs by software and LLM for more detailed analysis
+    by_software: dict[str, list[EvaluationRun]] = {}
+    by_llm: dict[str, list[EvaluationRun]] = {}
+
+    for run in runs:
+        software_name = run.ground_truth.software_name
+        llm_key = f"{run.llm_config.provider}/{run.llm_config.model}"
+
+        if software_name not in by_software:
+            by_software[software_name] = []
+        by_software[software_name].append(run)
+
+        if llm_key not in by_llm:
+            by_llm[llm_key] = []
+        by_llm[llm_key].append(run)
+
+        total_execution_time += run.execution_time_seconds
+
+        if run.parsed_version:
+            try:
+                gt_version = parse(run.ground_truth.version)
+                response_version = parse(run.parsed_version)
+
+                if gt_version == response_version:
+                    exact_matches += 1
+                if gt_version.major == response_version.major:
+                    major_matches += 1
+                if (
+                    gt_version.major == response_version.major
+                    and gt_version.minor == response_version.minor
+                ):
+                    minor_matches += 1
+            except Exception as e:
+                print(f"Error parsing version for {software_name} ({llm_key}): {e}")
+
+    print("-" * 50)
+    print("Overall Evaluation Results:")
+    print(f"Total Runs: {total_runs}")
+    print(f"Exact Matches: {exact_matches} ({exact_matches / total_runs:.2%})")
+    print(f"Major Version Matches: {major_matches} ({major_matches / total_runs:.2%})")
+    print(f"Minor Version Matches: {minor_matches} ({minor_matches / total_runs:.2%})")
+    print(f"Average Execution Time: {total_execution_time / total_runs:.2f} seconds")
+    print("-" * 50)
+
+    print("\nResults by Software:")
+    for software_name, software_runs in by_software.items():
+        print(f"\n  {software_name}:")
+        software_total = len(software_runs)
+        software_exact = 0
+        software_major = 0
+        software_minor = 0
+
+        for run in software_runs:
+            if run.parsed_version:
+                try:
+                    gt_version = parse(run.ground_truth.version)
+                    response_version = parse(run.parsed_version)
+
+                    if gt_version == response_version:
+                        software_exact += 1
+                    if gt_version.major == response_version.major:
+                        software_major += 1
+                    if (
+                        gt_version.major == response_version.major
+                        and gt_version.minor == response_version.minor
+                    ):
+                        software_minor += 1
+                except Exception as e:
+                    print(
+                        f"Error parsing version for {software_name} ({run.llm_config.provider}/{run.llm_config.model}): {e}"
+                    )
+
+        print(f"    Total Runs: {software_total}")
+        print(
+            f"    Exact Matches: {software_exact} ({software_exact / software_total:.2%})"
+        )
+        print(
+            f"    Major Matches: {software_major} ({software_major / software_total:.2%})"
+        )
+        print(
+            f"    Minor Matches: {software_minor} ({software_minor / software_total:.2%})"
+        )
+
+    print("\nResults by LLM:")
+    for llm_key, llm_runs in by_llm.items():
+        print(f"\n  {llm_key}:")
+        llm_total = len(llm_runs)
+        llm_exact = 0
+        llm_major = 0
+        llm_minor = 0
+        llm_total_time = 0.0
+
+        for run in llm_runs:
+            llm_total_time += run.execution_time_seconds
+            if run.parsed_version:
+                try:
+                    gt_version = parse(run.ground_truth.version)
+                    response_version = parse(run.parsed_version)
+                    if gt_version == response_version:
+                        llm_exact += 1
+                    if gt_version.major == response_version.major:
+                        llm_major += 1
+                    if (
+                        gt_version.major == response_version.major
+                        and gt_version.minor == response_version.minor
+                    ):
+                        llm_minor += 1
+                except Exception as e:
+                    print(
+                        f"Error parsing version for {run.ground_truth.software_name} ({llm_key}): {e}"
+                    )
+
+        print(f"    Total Runs: {llm_total}")
+        print(f"    Exact Matches: {llm_exact} ({llm_exact / llm_total:.2%})")
+        print(f"    Major Matches: {llm_major} ({llm_major / llm_total:.2%})")
+        print(f"    Minor Matches: {llm_minor} ({llm_minor / llm_total:.2%})")
+        print(f"    Average Execution Time: {llm_total_time / llm_total:.2f} seconds")
+
+
+def load_runs_from_jsonl(filepath: str) -> list[EvaluationRun]:
+    """Loads evaluation runs from a JSON Lines file."""
+    runs = []
+    try:
+        with open(filepath, "r") as f:
+            for line in f:
+                try:
+                    run_data = json.loads(line)
+                    run = EvaluationRun(**run_data)
+                    runs.append(run)
+                except Exception as e:
+                    print(f"Error parsing run data: {e} \n {line=}")
+
+    except FileNotFoundError:
+        print(f"Error: Runs file not found: {filepath}")
+        return []  # Return an empty list if the file doesn't exist
+    return runs
+
+
 if __name__ == "__main__":
-    _execute()
+    # _execute()
+    runs = load_runs_from_jsonl(RUNS_FILE)
+    evaluate_runs(runs)
