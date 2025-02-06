@@ -3,7 +3,7 @@ from datetime import date, datetime, UTC
 from typing import Optional
 
 
-def utc_factory():
+def utc_factory() -> datetime:
     return datetime.now(UTC)
 
 
@@ -26,9 +26,9 @@ class SoftwareVersionGroundTruth(BaseModel):
         default=None, description="The official release date of the version"
     )
 
-    # source_url: HttpUrl = Field(
-    #     ..., description="The URL where the version information was obtained"
-    # )
+    url: HttpUrl = Field(
+        ..., description="The URL where the version information was obtained"
+    )
 
     timestamp: datetime = Field(
         default_factory=utc_factory,

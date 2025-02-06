@@ -7,7 +7,9 @@ requires-python = ">=3.12"
 dependencies = [
     "langchain>=0.3.17",
     "langchain-anthropic>=0.3.6",
+    "langchain-fireworks>=0.2.7",
     "langchain-google-genai>=2.0.9",
+    "langchain-mistralai>=0.2.6",
     "langchain-openai>=0.3.3",
     "pydantic>=2.10.6",
     "python-dotenv>=1.0.1",
@@ -37,6 +39,6 @@ select = [
 
     "SIM2", # Simplify boolean expressions
 
-    "T20", # Find uses of 'print' or 'pprint'
+    # "T20", # Find uses of 'print' or 'pprint'
 
 ]

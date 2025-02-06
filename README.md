@@ -80,3 +80,14 @@ Generate Questions: Use an LLM to generate questions or tasks that test the LLM'
 "How do you handle [specific scenario] in version X.Y.Z of [software_name] compared to version X.Y.W?"
 
 Data Format: Store the generated benchmark data in a structured format (e.g., JSON) suitable for LLM evaluation.
+
+# Setup
+
+1. Install UV
+2. Install pre-commit hooks
+
+```
+pre-commit install
+```
+
+
