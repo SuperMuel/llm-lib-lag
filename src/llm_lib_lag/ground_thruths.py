@@ -7,11 +7,6 @@ logger = logging.getLogger(__name__)
 
 GROUND_TRUTHS = [
     TechVersionGroundTruth(
-        tech=Language.PYTHON,
-        version="3.13.1",
-        release_date=date(2024, 12, 3),
-    ),
-    TechVersionGroundTruth(
         tech=LibraryIdentifier(package_manager=PackageManager.PYPI, name="fastapi"),
         version="0.115.8",
         release_date=date(2025, 1, 30),
@@ -67,22 +62,59 @@ GROUND_TRUTHS = [
         version="3.4.2",
         release_date=date(2025, 1, 23),
     ),
+    TechVersionGroundTruth(
+        tech=Language.RUST,
+        version="1.84.1",
+        release_date=date(2025, 1, 31),
+    ),
+    TechVersionGroundTruth(
+        tech=Language.PYTHON,
+        version="3.13.2",
+        release_date=date(2025, 2, 5),
+    ),
+    TechVersionGroundTruth(
+        tech=Language.RUBY,
+        version="3.4.1",
+        release_date=date(2024, 12, 25),
+    ),
 ]
 
 if __name__ == "__main__":
     from .fetchers import fetch_latest_version_and_date
 
+    # ANSI escape codes for colors
+    GREEN = "\033[32m"
+    RESET = "\033[0m"
+    RED = "\033[31m"
+
+    total_ground_truths = len(GROUND_TRUTHS)
+    ground_truths_passed = 0
+
     for ground_truth in GROUND_TRUTHS:
-        if isinstance(ground_truth.tech, Language):
-            print(f"Skipping language {ground_truth.tech}")
+        try:
+            fetched_latest_version, latest_date = fetch_latest_version_and_date(
+                ground_truth.tech
+            )
+        except Exception as e:
+            print(
+                f"{RED}Error fetching latest version for {ground_truth.tech}: {e}{RESET}"
+            )
             continue
 
-        latest_version, latest_date = fetch_latest_version_and_date(ground_truth.tech)
-        assert latest_version == ground_truth.version, (
-            f"Latest version mismatch for {ground_truth.tech}: {latest_version} != {ground_truth.version}"
+        assert fetched_latest_version == ground_truth.version, (
+            f"Latest version mismatch for {ground_truth.tech}: Fetched {fetched_latest_version} != Ground truth {ground_truth.version}"
         )
         assert latest_date.date() == ground_truth.release_date, (
-            f"Latest date mismatch for {ground_truth.tech}: {latest_date.date()} != {ground_truth.release_date}"
+            f"Latest date mismatch for {ground_truth.tech}: Fetched {latest_date.date()} != Ground truth {ground_truth.release_date}"
         )
+        print(
+            f"{GREEN}✓ {ground_truth.tech}: {fetched_latest_version} ({latest_date.date()}){RESET}"
+        )
+        ground_truths_passed += 1
 
-    print("All ground truths passed")
+    if ground_truths_passed == total_ground_truths:
+        print(f"{GREEN}All ground truths passed{RESET}")
+    else:
+        print(
+            f"{RED}{ground_truths_passed}/{total_ground_truths} ground truths passed{RESET}"
+        )

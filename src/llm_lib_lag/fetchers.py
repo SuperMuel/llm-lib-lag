@@ -1,6 +1,7 @@
+from typing import Literal
 import requests
 from datetime import date, datetime, UTC
-from .models import LibraryIdentifier, PackageManager
+from .models import Language, LibraryIdentifier, PackageManager
 
 
 class LibraryVersionNotFoundError(Exception):
@@ -161,26 +162,70 @@ def fetch_maven_release_date(group_id: str, artifact_id: str, version: str) -> d
     return datetime.fromtimestamp(ts_millis / 1000, UTC)
 
 
+def fetch_github_latest_tag(
+    org: str, repo: str, version_key: Literal["tag_name", "name"] = "tag_name"
+) -> tuple[str, datetime]:
+    """
+    Fetches the latest release for a GitHub repository by calling:
+        https://api.github.com/repos/{org_repo}/releases/latest
+
+    Returns a tuple of:
+      (version_tag, release_date)
+
+    WARNING:
+    - If the repo doesn't have 'latest' releases or if it's not using
+      GitHub Releases, this may fail or give unexpected data.
+    - The tag_name may not always be semantic versioning.
+
+    Example usage:
+      fetch_github_latest_tag("rust-lang", "rust")
+        -> ("1.84.1", datetime(2025, 1, 31, 1, 59, 23, tzinfo=UTC))
+    """
+    api_url = f"https://api.github.com/repos/{org}/{repo}/releases/latest"
+    resp = requests.get(api_url)
+    resp.raise_for_status()
+
+    data = resp.json()
+    version_tag = data[version_key]  # e.g. "1.84.1" for rust-lang/rust
+    published_at = data["published_at"]  # e.g. "2025-01-31T01:59:23Z"
+
+    # Convert the timestamp to a Python datetime
+    release_date = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
+
+    return version_tag, release_date
+
+
 def fetch_latest_version_and_date(
-    identifier: LibraryIdentifier,
+    tech: LibraryIdentifier | Language,
 ) -> tuple[str, datetime]:
     """
     Unified function to fetch the latest version info for a LibraryIdentifier,
     handling NPM or PYPI (extendable to other PackageManagers).
     """
-    match identifier.package_manager:
+    if isinstance(tech, Language):
+        match tech:
+            case Language.RUST:
+                return fetch_github_latest_tag(
+                    "rust-lang", "rust", version_key="tag_name"
+                )
+            case Language.PYTHON:
+                return fetch_github_latest_tag(
+                    "actions", "python-versions", version_key="name"
+                )
+            case Language.RUBY:
+                return fetch_github_latest_tag("ruby", "ruby", version_key="name")
+            case _:
+                raise ValueError(f"Unsupported language: {tech}")
+
+    match tech.package_manager:
         case PackageManager.NPM:
-            return fetch_npm_version_info(identifier.name)
+            return fetch_npm_version_info(tech.name)
         case PackageManager.MAVEN:
-            group_id, artifact_id = identifier.name.split(":", 1)
+            group_id, artifact_id = tech.name.split(":", 1)
             return fetch_maven_version_info(group_id, artifact_id)
         case PackageManager.PYPI:
-            return fetch_pypi_version_info(identifier.name)
-        # Add more logic for other package managers (MAVEN, etc.)
-        case _:
-            raise ValueError(
-                f"Unsupported package manager: {identifier.package_manager}"
-            )
+            return fetch_pypi_version_info(tech.name)
+    raise ValueError(f"Unsupported package manager: {tech.package_manager}")
 
 
 def fetch_version_date(identifier: LibraryIdentifier, version: str) -> datetime:

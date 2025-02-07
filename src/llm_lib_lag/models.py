@@ -23,6 +23,7 @@ class Language(str, Enum):
     JAVA = "java"
     C_SHARP = "csharp"
     GO = "go"
+    RUST = "rust"
 
     @property
     def name(self) -> str:
