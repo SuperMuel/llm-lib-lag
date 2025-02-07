@@ -59,14 +59,6 @@ GROUND_TRUTHS = [
     #     version="21.0.0",  # For example, a Java SE release version
     #     release_date=date(2025, 2, 10),
     # ),
-    # TechVersionGroundTruth(
-    #     tech=LibraryIdentifier(
-    #         package_manager=PackageManager.MAVEN, name="spring-boot"
-    #     ),
-    #     version="3.1.0",
-    #     release_date=date(2025, 1, 20),
-    # ),
-    # spring boot :
     TechVersionGroundTruth(
         tech=LibraryIdentifier(
             package_manager=PackageManager.MAVEN,

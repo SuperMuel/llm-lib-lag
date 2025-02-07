@@ -53,14 +53,16 @@ class TechVersionGroundTruth(BaseModel):
 
 
 class LLMConfig(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(
+        frozen=True,
+        extra="forbid",  # Prevents extra attributes
+    )
 
-    provider: Literal["anthropic", "openai", "google", "mistralai", "fireworks"] = (
-        Field(
-            ...,
-            description="LLM provider (e.g., 'anthropic', 'openai')",
-            examples=["anthropic", "openai", "google", "mistralai", "fireworks"],
-        )
+    provider: Literal[
+        "anthropic", "openai", "google_genai", "mistralai", "fireworks"
+    ] = Field(
+        ...,
+        description="LLM provider (e.g., 'anthropic', 'openai')",
     )
     model: str = Field(
         ...,
@@ -72,6 +74,9 @@ class LLMConfig(BaseModel):
             "accounts/fireworks/models/deepseek-v3",
         ],
     )
+
+    def __hash__(self) -> int:
+        return hash((self.provider, self.model))
 
 
 class EvaluationRun(BaseModel):

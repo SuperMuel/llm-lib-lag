@@ -1,19 +1,22 @@
 import re
 import time
+from functools import lru_cache
 
+from langchain.chat_models import init_chat_model
 from langchain.prompts import ChatPromptTemplate
-from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
+
 from .fetchers import fetch_version_date
 from .models import (
-    LLMConfig,
     EvaluationRun,
     LibraryIdentifier,
+    LLMConfig,
     TechVersionGroundTruth,
 )
 
 
+@lru_cache(maxsize=1000)
 def initialize_llm(llm_config: LLMConfig) -> BaseChatModel:
     """
     Returns an instance of a LangChain-compatible chat model
@@ -22,24 +25,8 @@ def initialize_llm(llm_config: LLMConfig) -> BaseChatModel:
     :param llm_config: The config specifying LLM provider and model name.
     :return: A BaseChatModel instance for inference.
     """
-    from langchain_fireworks import ChatFireworks
-    from langchain_google_genai import ChatGoogleGenerativeAI
-    from langchain_mistralai.chat_models import ChatMistralAI
-    from langchain_openai import ChatOpenAI
 
-    match llm_config.provider:
-        case "openai":
-            return ChatOpenAI(model=llm_config.model, temperature=0)
-        case "google":
-            return ChatGoogleGenerativeAI(model=llm_config.model, temperature=0)
-        case "mistralai":
-            return ChatMistralAI(model_name=llm_config.model, temperature=0)
-        case "fireworks":
-            return ChatFireworks(model=llm_config.model, temperature=0)
-        case "anthropic":
-            return ChatAnthropic(name=llm_config.model, temperature=0)  # type: ignore
-
-    raise ValueError(f"Provider {llm_config.provider} not supported")
+    return init_chat_model(model=llm_config.model, model_provider=llm_config.provider)
 
 
 def run_single_evaluation(
