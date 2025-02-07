@@ -1,7 +1,7 @@
 from enum import Enum
-from pydantic import BaseModel, ConfigDict, HttpUrl, Field
+from typing import Literal
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import date, datetime, UTC
-from typing import Optional, Literal
 
 
 def utc_factory() -> datetime:
@@ -21,6 +21,8 @@ class Language(str, Enum):
     JAVASCRIPT = "javascript"
     RUBY = "ruby"
     JAVA = "java"
+    C_SHARP = "csharp"
+    GO = "go"
 
     @property
     def name(self) -> str:
@@ -53,10 +55,12 @@ class TechVersionGroundTruth(BaseModel):
 class LLMConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    provider: str = Field(
-        ...,
-        description="LLM provider (e.g., 'anthropic', 'openai')",
-        examples=["anthropic", "openai", "google", "mistralai", "fireworks"],
+    provider: Literal["anthropic", "openai", "google", "mistralai", "fireworks"] = (
+        Field(
+            ...,
+            description="LLM provider (e.g., 'anthropic', 'openai')",
+            examples=["anthropic", "openai", "google", "mistralai", "fireworks"],
+        )
     )
     model: str = Field(
         ...,

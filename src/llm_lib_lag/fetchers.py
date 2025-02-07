@@ -1,6 +1,6 @@
 import requests
-from datetime import datetime
-from src.models import LibraryIdentifier, PackageManager
+from datetime import date, datetime, UTC
+from .models import LibraryIdentifier, PackageManager
 
 
 class LibraryVersionNotFoundError(Exception):
@@ -106,6 +106,61 @@ def fetch_pypi_release_date(library_name: str, version: str) -> datetime:
     return datetime.fromisoformat(release_date_str)
 
 
+def fetch_maven_version_info(group_id: str, artifact_id: str) -> tuple[str, datetime]:
+    """Fetch the latest version and release date from Maven Central for the given artifact."""
+    group_path = group_id.replace(".", "/")
+    url = (
+        f"https://repo1.maven.org/maven2/{group_path}/{artifact_id}/maven-metadata.xml"
+    )
+    response = requests.get(url)
+    if response.status_code == 404:
+        raise LibraryVersionNotFoundError(
+            f"{group_id}:{artifact_id}", package_manager=PackageManager.MAVEN
+        )
+    response.raise_for_status()
+    import xml.etree.ElementTree as ET
+
+    root = ET.fromstring(response.content)
+    versioning = root.find("versioning")
+    if versioning is None:
+        raise ValueError(f"No versioning info found for {group_id}:{artifact_id}")
+    latest_elem = versioning.find("latest")
+    if latest_elem is None or latest_elem.text is None:
+        raise ValueError(f"No latest version found for {group_id}:{artifact_id}")
+    latest_version = latest_elem.text
+    last_updated = versioning.find("lastUpdated")
+    if last_updated is None or last_updated.text is None:
+        raise ValueError(f"No lastUpdated found for {group_id}:{artifact_id}")
+    timestamp = last_updated.text
+    release_dt = datetime.strptime(timestamp, "%Y%m%d%H%M%S")
+    return latest_version, release_dt
+
+
+def fetch_maven_release_date(group_id: str, artifact_id: str, version: str) -> datetime:
+    """Fetch the release date of a specific version from Maven Central using the search.maven.org API."""
+    query = f'g:"{group_id}" AND a:"{artifact_id}" AND v:"{version}"'
+    url = "https://search.maven.org/solrsearch/select"
+    params = {
+        "q": query,
+        "core": "gav",
+        "rows": 1,
+        "wt": "json",
+    }
+    resp = requests.get(url, params=params)
+    resp.raise_for_status()
+    data = resp.json()
+    docs = data.get("response", {}).get("docs", [])
+    if not docs:
+        raise LibraryVersionNotFoundError(
+            f"{group_id}:{artifact_id}",
+            version=version,
+            package_manager=PackageManager.MAVEN,
+        )
+    doc = docs[0]
+    ts_millis = doc["timestamp"]
+    return datetime.fromtimestamp(ts_millis / 1000, UTC)
+
+
 def fetch_latest_version_and_date(
     identifier: LibraryIdentifier,
 ) -> tuple[str, datetime]:
@@ -116,6 +171,9 @@ def fetch_latest_version_and_date(
     match identifier.package_manager:
         case PackageManager.NPM:
             return fetch_npm_version_info(identifier.name)
+        case PackageManager.MAVEN:
+            group_id, artifact_id = identifier.name.split(":", 1)
+            return fetch_maven_version_info(group_id, artifact_id)
         case PackageManager.PYPI:
             return fetch_pypi_version_info(identifier.name)
         # Add more logic for other package managers (MAVEN, etc.)
@@ -132,6 +190,9 @@ def fetch_version_date(identifier: LibraryIdentifier, version: str) -> datetime:
     match identifier.package_manager:
         case PackageManager.NPM:
             return fetch_npm_release_date(identifier.name, version)
+        case PackageManager.MAVEN:
+            group_id, artifact_id = identifier.name.split(":", 1)
+            return fetch_maven_release_date(group_id, artifact_id, version)
         case PackageManager.PYPI:
             return fetch_pypi_release_date(identifier.name, version)
         # Add more logic for other package managers (MAVEN, etc.)
@@ -148,7 +209,8 @@ if __name__ == "__main__":
     print("Latest react version:")
     react_latest_ver, react_latest_dt = fetch_npm_version_info("react")
     print(f"  version={react_latest_ver}, released={react_latest_dt}")
-
+    major, minor, patch = map(int, react_latest_ver.split(".", 2))
+    assert major >= 19
     print()
 
     # -------------------------------------------------------------------------
@@ -157,7 +219,8 @@ if __name__ == "__main__":
     print("Latest fastapi version:")
     fastapi_latest_ver, fastapi_latest_dt = fetch_pypi_version_info("fastapi")
     print(f"  version={fastapi_latest_ver}, released={fastapi_latest_dt}")
-
+    major, minor, patch = map(int, fastapi_latest_ver.split(".", 2))
+    assert major > 0 or (major == 0 and minor >= 115)
     print()
 
     # -------------------------------------------------------------------------
@@ -167,6 +230,7 @@ if __name__ == "__main__":
     try:
         react_1831_dt = fetch_npm_release_date("react", "18.3.1")
         print(f"  react@18.3.1 released={react_1831_dt}")
+        assert react_1831_dt.date() == date(2024, 4, 26)
     except ValueError as e:
         print(f"  Could not fetch react@18.3.1: {e}")
 
@@ -179,5 +243,36 @@ if __name__ == "__main__":
     try:
         fastapi_100_dt = fetch_pypi_release_date("fastapi", "0.100.0")
         print(f"  fastapi@0.100.0 released={fastapi_100_dt}")
+        assert fastapi_100_dt.date() == date(2023, 7, 7)
     except ValueError as e:
         print(f"  Could not fetch fastapi@0.100.0: {e}")
+
+    print()
+
+    # -------------------------------------------------------------------------
+    # 5. Latest Maven version (spring-boot-starter-parent)
+    # -------------------------------------------------------------------------
+    print("Latest Maven version (spring-boot-starter-parent):")
+    maven_identifier = LibraryIdentifier(
+        package_manager=PackageManager.MAVEN,
+        name="org.springframework.boot:spring-boot-starter-parent",
+    )
+    maven_latest_ver, maven_latest_dt = fetch_latest_version_and_date(maven_identifier)
+    print(f"  version={maven_latest_ver}, released={maven_latest_dt}")
+    major, minor, patch = map(int, maven_latest_ver.split(".", 2))
+    assert major >= 3 or (major == 3 and minor >= 2)
+
+    print()
+
+    # -------------------------------------------------------------------------
+    # 6. Release date of Maven artifact version 3.2.1
+    # -------------------------------------------------------------------------
+    print("Release date of Maven artifact version 3.2.1:")
+    try:
+        maven_version_date = fetch_version_date(maven_identifier, "3.2.1")
+        print(f"  released={maven_version_date}")
+        assert maven_version_date.date() == date(2023, 12, 21)
+    except Exception as e:
+        print(f"  Could not fetch Maven version 3.2.1: {e}")
+
+    print()

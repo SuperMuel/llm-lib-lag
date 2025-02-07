@@ -2,16 +2,16 @@ import re
 import time
 
 from langchain.prompts import ChatPromptTemplate
+from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
-from src.fetchers import fetch_version_date
-from src.models import (
+from .fetchers import fetch_version_date
+from .models import (
     LLMConfig,
     EvaluationRun,
     LibraryIdentifier,
     TechVersionGroundTruth,
 )
-from packaging.version import Version, parse
 
 
 def initialize_llm(llm_config: LLMConfig) -> BaseChatModel:
@@ -27,16 +27,19 @@ def initialize_llm(llm_config: LLMConfig) -> BaseChatModel:
     from langchain_mistralai.chat_models import ChatMistralAI
     from langchain_openai import ChatOpenAI
 
-    if llm_config.provider == "openai":
-        return ChatOpenAI(model=llm_config.model, temperature=0)
-    elif llm_config.provider == "google":
-        return ChatGoogleGenerativeAI(model=llm_config.model, temperature=0)
-    elif llm_config.provider == "mistralai":
-        return ChatMistralAI(model_name=llm_config.model, temperature=0)
-    elif llm_config.provider == "fireworks":
-        return ChatFireworks(model=llm_config.model, temperature=0)
-    else:
-        raise ValueError(f"Provider {llm_config.provider} not supported")
+    match llm_config.provider:
+        case "openai":
+            return ChatOpenAI(model=llm_config.model, temperature=0)
+        case "google":
+            return ChatGoogleGenerativeAI(model=llm_config.model, temperature=0)
+        case "mistralai":
+            return ChatMistralAI(model_name=llm_config.model, temperature=0)
+        case "fireworks":
+            return ChatFireworks(model=llm_config.model, temperature=0)
+        case "anthropic":
+            return ChatAnthropic(name=llm_config.model, temperature=0)  # type: ignore
+
+    raise ValueError(f"Provider {llm_config.provider} not supported")
 
 
 def run_single_evaluation(
@@ -62,11 +65,11 @@ def run_single_evaluation(
     print(f"Ground truth: {ground_truth.tech} - {ground_truth.version}")
 
     llm = initialize_llm(llm_config)
-    chain = prompt | llm | StrOutputParser()
+    chain = prompt | llm | StrOutputParser()  # type: ignore
 
     start_time = time.time()
     query_input = ground_truth.tech.name
-    result_str = chain.invoke({"software_name": query_input})
+    result_str = chain.invoke({"software_name": query_input})  # type: ignore
     elapsed = time.time() - start_time
 
     matches = re.finditer(version_regex, result_str)

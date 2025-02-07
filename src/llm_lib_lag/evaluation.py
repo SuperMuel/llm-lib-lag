@@ -1,6 +1,6 @@
 from typing import Sequence
 from packaging.version import parse
-from src.models import EvaluationRun
+from .models import EvaluationRun
 import statistics  # Import the statistics module
 
 
@@ -91,7 +91,7 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
         software_exact = 0
         software_major = 0
         software_minor = 0
-        software_lags = []  # List to store lag_days for this software
+        software_lags: list[float] = []  # List to store lag_days for this software
 
         for run in software_runs:
             if run.parsed_version:
@@ -145,7 +145,7 @@ def evaluate_runs(runs: Sequence[EvaluationRun]) -> None:
         llm_major = 0
         llm_minor = 0
         llm_total_time = 0.0
-        llm_lags = []  # List to store lag_days for this LLM
+        llm_lags: list[float] = []  # List to store lag_days for this LLM
 
         for run in llm_runs:
             llm_total_time += run.execution_time_seconds

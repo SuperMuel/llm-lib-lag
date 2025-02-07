@@ -5,6 +5,8 @@ repos:
   hooks:
     # Run the linter.
     - id: ruff
+      types_or: [ python, pyi ] # Ignore jupyter
       args: [ --fix ] # Fixes only safe issues.
     # Run the formatter.
     - id: ruff-format
+      types_or: [ python, pyi ] # Ignore jupyter

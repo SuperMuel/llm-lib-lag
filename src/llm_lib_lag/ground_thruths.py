@@ -44,4 +44,35 @@ GROUND_TRUTHS = [
         version="5.7.3",
         release_date=date(2025, 1, 8),
     ),
+    # TechVersionGroundTruth(
+    #     tech=LibraryIdentifier(package_manager=PackageManager.NPM, name="vue"),
+    #     version="3.3.4",
+    #     release_date=date(2024, 11, 20),
+    # ),
+    # TechVersionGroundTruth(
+    #     tech=LibraryIdentifier(package_manager=PackageManager.NPM, name="angular"),
+    #     version="15.2.0",
+    #     release_date=date(2024, 10, 10),
+    # ),
+    # TechVersionGroundTruth(
+    #     tech=Language.JAVA,
+    #     version="21.0.0",  # For example, a Java SE release version
+    #     release_date=date(2025, 2, 10),
+    # ),
+    # TechVersionGroundTruth(
+    #     tech=LibraryIdentifier(
+    #         package_manager=PackageManager.MAVEN, name="spring-boot"
+    #     ),
+    #     version="3.1.0",
+    #     release_date=date(2025, 1, 20),
+    # ),
+    # spring boot :
+    TechVersionGroundTruth(
+        tech=LibraryIdentifier(
+            package_manager=PackageManager.MAVEN,
+            name="org.springframework.boot:spring-boot-starter-parent",
+        ),
+        version="3.4.2",
+        release_date=date(2025, 1, 23),
+    ),
 ]

@@ -1,5 +1,5 @@
 import json
-from src.models import EvaluationRun, LLMConfig, TechVersionGroundTruth
+from .models import EvaluationRun, LLMConfig, TechVersionGroundTruth
 
 
 def load_runs_from_jsonl(filepath: str) -> list[EvaluationRun]:
@@ -12,7 +12,7 @@ def load_runs_from_jsonl(filepath: str) -> list[EvaluationRun]:
     Usage:
         runs = load_runs_from_jsonl("runs.jsonl")
     """
-    runs = []
+    runs: list[EvaluationRun] = []
     try:
         with open(filepath, "r") as f:
             for line in f:
@@ -41,7 +41,8 @@ def get_missing_runs(
     :return: Subset of 'pairs' that have not been run yet.
     """
     existing_keys = {(run.llm_config, run.ground_truth) for run in runs}
-    missing = []
+    missing: list[tuple[LLMConfig, TechVersionGroundTruth]] = []
+
     for llm, gt in pairs:
         if (llm, gt) not in existing_keys:
             missing.append((llm, gt))

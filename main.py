@@ -1,11 +1,11 @@
 import re
 from dotenv import load_dotenv
 from langchain.prompts import ChatPromptTemplate
-from src.models import EvaluationRun, LLMConfig, TechVersionGroundTruth
-from src.ground_thruths import GROUND_TRUTHS
-from src.runner import run_single_evaluation
-from src.evaluation import evaluate_runs
-from src.io_utils import load_runs_from_jsonl, get_missing_runs
+from llm_lib_lag.models import LLMConfig
+from llm_lib_lag.ground_thruths import GROUND_TRUTHS
+from llm_lib_lag.runner import run_single_evaluation
+from llm_lib_lag.evaluation import evaluate_runs
+from llm_lib_lag.io_utils import load_runs_from_jsonl, get_missing_runs
 
 load_dotenv()
 
@@ -20,6 +20,7 @@ LLMS = [
     LLMConfig(provider="google", model="gemini-2.0-flash-001"),
     LLMConfig(provider="google", model="gemini-2.0-flash-lite-preview-02-05"),
     LLMConfig(provider="mistralai", model="mistral-small-2501"),
+    LLMConfig(provider="anthropic", model="claude-3-5-haiku-20241022"),
     LLMConfig(
         provider="fireworks",
         model="accounts/fireworks/models/qwen2p5-coder-32b-instruct",
@@ -28,7 +29,7 @@ LLMS = [
 ]
 
 # Reusable prompt for "latest stable version"
-VERSION_PROMPT = ChatPromptTemplate.from_messages(
+VERSION_PROMPT = ChatPromptTemplate.from_messages(  # type: ignore
     [
         (
             "system",
@@ -75,6 +76,7 @@ def main() -> None:
 
     # Execute runs for missing pairs
     for llm_config, ground_truth in missing:
+        print(f"Running {llm_config.model} for {ground_truth.tech.name}...")
         run = run_single_evaluation(
             llm_config=llm_config,
             ground_truth=ground_truth,
@@ -86,8 +88,7 @@ def main() -> None:
         # Persist runs to file
         with open(RUNS_FILE, "a") as f:
             f.write(run.model_dump_json() + "\n")
-
-        print(f"Wrote {len(runs)} runs total to {RUNS_FILE}")
+            print(f"Wrote run to {RUNS_FILE}")
 
     # Evaluate and print results
     evaluate_runs(runs)
