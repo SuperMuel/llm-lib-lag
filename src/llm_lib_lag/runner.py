@@ -17,7 +17,7 @@ from .models import (
 
 
 @lru_cache(maxsize=1000)
-def initialize_llm(llm_config: LLMConfig) -> BaseChatModel:
+def _initialize_llm(llm_config: LLMConfig) -> BaseChatModel:
     """
     Returns an instance of a LangChain-compatible chat model
     given an LLMConfig.
@@ -51,7 +51,7 @@ def run_single_evaluation(
     """
     print(f"Ground truth: {ground_truth.tech} - {ground_truth.version}")
 
-    llm = initialize_llm(llm_config)
+    llm = _initialize_llm(llm_config)
     chain = prompt | llm | StrOutputParser()  # type: ignore
 
     start_time = time.time()

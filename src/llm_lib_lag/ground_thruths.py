@@ -1,5 +1,8 @@
 from datetime import date
+import logging
 from .models import Language, TechVersionGroundTruth, LibraryIdentifier, PackageManager
+
+logger = logging.getLogger(__name__)
 
 
 GROUND_TRUTHS = [
@@ -20,8 +23,8 @@ GROUND_TRUTHS = [
     ),
     TechVersionGroundTruth(
         tech=LibraryIdentifier(package_manager=PackageManager.PYPI, name="sqlalchemy"),
-        version="2.0.37",
-        release_date=date(2025, 1, 10),
+        version="2.0.38",
+        release_date=date(2025, 2, 6),
     ),
     TechVersionGroundTruth(
         tech=LibraryIdentifier(package_manager=PackageManager.PYPI, name="pydantic"),
@@ -44,21 +47,18 @@ GROUND_TRUTHS = [
         version="5.7.3",
         release_date=date(2025, 1, 8),
     ),
-    # TechVersionGroundTruth(
-    #     tech=LibraryIdentifier(package_manager=PackageManager.NPM, name="vue"),
-    #     version="3.3.4",
-    #     release_date=date(2024, 11, 20),
-    # ),
-    # TechVersionGroundTruth(
-    #     tech=LibraryIdentifier(package_manager=PackageManager.NPM, name="angular"),
-    #     version="15.2.0",
-    #     release_date=date(2024, 10, 10),
-    # ),
-    # TechVersionGroundTruth(
-    #     tech=Language.JAVA,
-    #     version="21.0.0",  # For example, a Java SE release version
-    #     release_date=date(2025, 2, 10),
-    # ),
+    TechVersionGroundTruth(
+        tech=LibraryIdentifier(package_manager=PackageManager.NPM, name="vue"),
+        version="3.5.13",
+        release_date=date(2024, 11, 15),
+    ),
+    TechVersionGroundTruth(
+        tech=LibraryIdentifier(
+            package_manager=PackageManager.NPM, name="@angular/core"
+        ),
+        version="19.1.5",
+        release_date=date(2025, 2, 6),
+    ),
     TechVersionGroundTruth(
         tech=LibraryIdentifier(
             package_manager=PackageManager.MAVEN,
@@ -68,3 +68,21 @@ GROUND_TRUTHS = [
         release_date=date(2025, 1, 23),
     ),
 ]
+
+if __name__ == "__main__":
+    from .fetchers import fetch_latest_version_and_date
+
+    for ground_truth in GROUND_TRUTHS:
+        if isinstance(ground_truth.tech, Language):
+            print(f"Skipping language {ground_truth.tech}")
+            continue
+
+        latest_version, latest_date = fetch_latest_version_and_date(ground_truth.tech)
+        assert latest_version == ground_truth.version, (
+            f"Latest version mismatch for {ground_truth.tech}: {latest_version} != {ground_truth.version}"
+        )
+        assert latest_date.date() == ground_truth.release_date, (
+            f"Latest date mismatch for {ground_truth.tech}: {latest_date.date()} != {ground_truth.release_date}"
+        )
+
+    print("All ground truths passed")
