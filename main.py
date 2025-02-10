@@ -2,7 +2,7 @@ import re
 from dotenv import load_dotenv
 from langchain.prompts import ChatPromptTemplate
 from llm_lib_lag.models import LLMConfig
-from llm_lib_lag.ground_thruths import GROUND_TRUTHS
+from llm_lib_lag.ground_truths import GROUND_TRUTHS
 from llm_lib_lag.runner import run_single_evaluation
 from llm_lib_lag.evaluation import evaluate_runs
 from llm_lib_lag.io_utils import load_runs_from_jsonl, get_missing_runs
