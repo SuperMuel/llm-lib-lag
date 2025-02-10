@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "beautifulsoup4>=4.13.3",
     "langchain>=0.3.17",
     "langchain-anthropic>=0.3.6",
     "langchain-fireworks>=0.2.7",
@@ -12,13 +13,13 @@ dependencies = [
     "langchain-mistralai>=0.2.6",
     "langchain-openai>=0.3.3",
     "pydantic>=2.10.6",
+    "pytest>=8.3.4",
     "python-dotenv>=1.0.1",
-
 ]
 
 
 [dependency-groups]
-dev = ["ipykernel>=6.29.5", "ruff>=0.9.4"]
+dev = ["ipykernel>=6.29.5", "ruff>=0.9.4", "pytest>=8.0.0"]
 
 [tool.ruff]
 

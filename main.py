@@ -16,6 +16,8 @@ RUNS_FILE = "runs.jsonl"
 
 LLMS = [
     LLMConfig(provider="openai", model="gpt-4o-mini"),
+    LLMConfig(provider="openai", model="o3-mini-2025-01-31"),
+    LLMConfig(provider="openai", model="gpt-4o-2024-08-06"),
     LLMConfig(provider="google_genai", model="gemini-1.5-flash"),
     LLMConfig(provider="google_genai", model="gemini-2.0-flash-001"),
     LLMConfig(provider="google_genai", model="gemini-2.0-flash-lite-preview-02-05"),

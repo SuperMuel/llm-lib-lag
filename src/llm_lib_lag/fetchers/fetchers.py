@@ -1,7 +1,20 @@
-from typing import Literal
 import requests
+
 from datetime import date, datetime, UTC
-from .models import Language, LibraryIdentifier, PackageManager
+from ..models import Language, LibraryIdentifier, PackageManager
+from .ruby_fetchers import get_ruby_release_date
+from .util import fetch_github_latest_tag
+
+
+class LanguageVersionNotFoundError(Exception):
+    def __init__(
+        self,
+        language: Language,
+        version: str | None = None,
+    ) -> None:
+        self.language = language
+        self.version = version
+        super().__init__(f"Language '{language}' version '{version}' not found")
 
 
 class LibraryVersionNotFoundError(Exception):
@@ -19,7 +32,7 @@ class LibraryVersionNotFoundError(Exception):
         )
 
 
-def fetch_npm_version_info(library_name: str) -> tuple[str, datetime]:
+def fetch_npm_version_info(library_name: str) -> tuple[str, date]:
     """
     Fetch the latest version and release date from npm registry for the given library.
     """
@@ -36,10 +49,10 @@ def fetch_npm_version_info(library_name: str) -> tuple[str, datetime]:
     # 'time' is a dict of version -> isoDate
     release_date_str = data["time"][latest_version].replace("Z", "+00:00")
     release_dt = datetime.fromisoformat(release_date_str)
-    return latest_version, release_dt
+    return latest_version, release_dt.date()
 
 
-def fetch_pypi_version_info(library_name: str) -> tuple[str, datetime]:
+def fetch_pypi_version_info(library_name: str) -> tuple[str, date]:
     """
     Fetch the latest version and release date from PyPI for the given library.
     """
@@ -59,10 +72,10 @@ def fetch_pypi_version_info(library_name: str) -> tuple[str, datetime]:
     release_file = release_files[-1]
     release_date_str = release_file["upload_time_iso_8601"].replace("Z", "+00:00")
     release_dt = datetime.fromisoformat(release_date_str)
-    return latest_version, release_dt
+    return latest_version, release_dt.date()
 
 
-def fetch_npm_release_date(library_name: str, version: str) -> datetime:
+def fetch_npm_release_date(library_name: str, version: str) -> date:
     """
     Fetch the release date of a specific version from the npm registry.
     """
@@ -81,10 +94,10 @@ def fetch_npm_release_date(library_name: str, version: str) -> datetime:
             library_name, version=version, package_manager=PackageManager.NPM
         )
     release_date_str = data["time"][version].replace("Z", "+00:00")
-    return datetime.fromisoformat(release_date_str)
+    return datetime.fromisoformat(release_date_str).date()
 
 
-def fetch_pypi_release_date(library_name: str, version: str) -> datetime:
+def fetch_pypi_release_date(library_name: str, version: str) -> date:
     """
     Fetch the release date of a specific version from PyPI.
     """
@@ -104,10 +117,10 @@ def fetch_pypi_release_date(library_name: str, version: str) -> datetime:
         )
     # Typically the first file or the last file has 'upload_time_iso_8601'
     release_date_str = files[-1]["upload_time_iso_8601"].replace("Z", "+00:00")
-    return datetime.fromisoformat(release_date_str)
+    return datetime.fromisoformat(release_date_str).date()
 
 
-def fetch_maven_version_info(group_id: str, artifact_id: str) -> tuple[str, datetime]:
+def fetch_maven_version_info(group_id: str, artifact_id: str) -> tuple[str, date]:
     """Fetch the latest version and release date from Maven Central for the given artifact."""
     group_path = group_id.replace(".", "/")
     url = (
@@ -134,10 +147,10 @@ def fetch_maven_version_info(group_id: str, artifact_id: str) -> tuple[str, date
         raise ValueError(f"No lastUpdated found for {group_id}:{artifact_id}")
     timestamp = last_updated.text
     release_dt = datetime.strptime(timestamp, "%Y%m%d%H%M%S")
-    return latest_version, release_dt
+    return latest_version, release_dt.date()
 
 
-def fetch_maven_release_date(group_id: str, artifact_id: str, version: str) -> datetime:
+def fetch_maven_release_date(group_id: str, artifact_id: str, version: str) -> date:
     """Fetch the release date of a specific version from Maven Central using the search.maven.org API."""
     query = f'g:"{group_id}" AND a:"{artifact_id}" AND v:"{version}"'
     url = "https://search.maven.org/solrsearch/select"
@@ -159,45 +172,12 @@ def fetch_maven_release_date(group_id: str, artifact_id: str, version: str) -> d
         )
     doc = docs[0]
     ts_millis = doc["timestamp"]
-    return datetime.fromtimestamp(ts_millis / 1000, UTC)
-
-
-def fetch_github_latest_tag(
-    org: str, repo: str, version_key: Literal["tag_name", "name"] = "tag_name"
-) -> tuple[str, datetime]:
-    """
-    Fetches the latest release for a GitHub repository by calling:
-        https://api.github.com/repos/{org_repo}/releases/latest
-
-    Returns a tuple of:
-      (version_tag, release_date)
-
-    WARNING:
-    - If the repo doesn't have 'latest' releases or if it's not using
-      GitHub Releases, this may fail or give unexpected data.
-    - The tag_name may not always be semantic versioning.
-
-    Example usage:
-      fetch_github_latest_tag("rust-lang", "rust")
-        -> ("1.84.1", datetime(2025, 1, 31, 1, 59, 23, tzinfo=UTC))
-    """
-    api_url = f"https://api.github.com/repos/{org}/{repo}/releases/latest"
-    resp = requests.get(api_url)
-    resp.raise_for_status()
-
-    data = resp.json()
-    version_tag = data[version_key]  # e.g. "1.84.1" for rust-lang/rust
-    published_at = data["published_at"]  # e.g. "2025-01-31T01:59:23Z"
-
-    # Convert the timestamp to a Python datetime
-    release_date = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
-
-    return version_tag, release_date
+    return datetime.fromtimestamp(ts_millis / 1000, UTC).date()
 
 
 def fetch_latest_version_and_date(
     tech: LibraryIdentifier | Language,
-) -> tuple[str, datetime]:
+) -> tuple[str, date]:
     """
     Unified function to fetch the latest version info for a LibraryIdentifier,
     handling NPM or PYPI (extendable to other PackageManagers).
@@ -213,7 +193,9 @@ def fetch_latest_version_and_date(
                     "actions", "python-versions", version_key="name"
                 )
             case Language.RUBY:
-                return fetch_github_latest_tag("ruby", "ruby", version_key="name")
+                return fetch_github_latest_tag(
+                    "ruby", "ruby", version_key="name", date_key="created_at"
+                )
             case _:
                 raise ValueError(f"Unsupported language: {tech}")
 
@@ -228,10 +210,19 @@ def fetch_latest_version_and_date(
     raise ValueError(f"Unsupported package manager: {tech.package_manager}")
 
 
-def fetch_version_date(identifier: LibraryIdentifier, version: str) -> datetime:
+def fetch_version_date(identifier: LibraryIdentifier | Language, version: str) -> date:
     """
     Fetch the release date of a specific version from the registry.
     """
+    if isinstance(identifier, Language):
+        match identifier:
+            case Language.RUBY:
+                assert not version.startswith("v"), (
+                    "Ruby version should not start with 'v'"
+                )
+                return get_ruby_release_date(version)
+            case _:
+                raise ValueError(f"Unsupported language: {identifier}")
     match identifier.package_manager:
         case PackageManager.NPM:
             return fetch_npm_release_date(identifier.name, version)
@@ -275,7 +266,7 @@ if __name__ == "__main__":
     try:
         react_1831_dt = fetch_npm_release_date("react", "18.3.1")
         print(f"  react@18.3.1 released={react_1831_dt}")
-        assert react_1831_dt.date() == date(2024, 4, 26)
+        assert react_1831_dt == date(2024, 4, 26)
     except ValueError as e:
         print(f"  Could not fetch react@18.3.1: {e}")
 
@@ -288,7 +279,7 @@ if __name__ == "__main__":
     try:
         fastapi_100_dt = fetch_pypi_release_date("fastapi", "0.100.0")
         print(f"  fastapi@0.100.0 released={fastapi_100_dt}")
-        assert fastapi_100_dt.date() == date(2023, 7, 7)
+        assert fastapi_100_dt == date(2023, 7, 7)
     except ValueError as e:
         print(f"  Could not fetch fastapi@0.100.0: {e}")
 
@@ -313,11 +304,26 @@ if __name__ == "__main__":
     # 6. Release date of Maven artifact version 3.2.1
     # -------------------------------------------------------------------------
     print("Release date of Maven artifact version 3.2.1:")
-    try:
-        maven_version_date = fetch_version_date(maven_identifier, "3.2.1")
-        print(f"  released={maven_version_date}")
-        assert maven_version_date.date() == date(2023, 12, 21)
-    except Exception as e:
-        print(f"  Could not fetch Maven version 3.2.1: {e}")
+    maven_version_date = fetch_version_date(maven_identifier, "3.2.1")
+    print(f"  released={maven_version_date}")
+    assert maven_version_date == date(2023, 12, 21)
 
     print()
+
+    # -------------------------------------------------------------------------
+    # 7. Release date of Ruby 3.4.1
+    # -------------------------------------------------------------------------
+    print("Release date of Ruby 3.2.0:")
+    ruby_320_dt = fetch_version_date(Language.RUBY, "3.2.0")
+    print(f"  released={ruby_320_dt}")
+    assert ruby_320_dt == date(2022, 12, 25)
+
+    # print("Release date of Ruby 1.8.0:")
+    # ruby_180_dt = fetch_version_date(Language.RUBY, "1.8.0")
+    # print(f"  released={ruby_180_dt}")
+    # assert ruby_180_dt == date(2003, 8, 4)
+
+    # print("Release date of Ruby 2.1.5:")
+    # ruby_215_dt = fetch_version_date(Language.RUBY, "2.1.5")
+    # print(f"  released={ruby_215_dt}")
+    # assert ruby_215_dt == date(2014, 11, 13)

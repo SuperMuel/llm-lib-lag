@@ -10,7 +10,6 @@ from langchain_core.output_parsers import StrOutputParser
 from .fetchers import fetch_version_date
 from .models import (
     EvaluationRun,
-    LibraryIdentifier,
     LLMConfig,
     TechVersionGroundTruth,
 )
@@ -71,14 +70,10 @@ def run_single_evaluation(
 
     print(f"{llm_config.provider}/{llm_config.model}: {parsed_version or result_str}")
 
-    if (
-        parsed_version
-        and ground_truth.release_date
-        and isinstance(ground_truth.tech, LibraryIdentifier)
-    ):
+    if parsed_version and ground_truth.release_date:
         try:
             parsed_version_date = fetch_version_date(ground_truth.tech, parsed_version)
-            lag_days = (ground_truth.release_date - parsed_version_date.date()).days
+            lag_days = (ground_truth.release_date - parsed_version_date).days
             parsed_version_exists = True
         except Exception as e:
             print(f"Error fetching version date: {e}")

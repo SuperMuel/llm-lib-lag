@@ -109,11 +109,11 @@ if __name__ == "__main__":
         assert fetched_latest_version == ground_truth.version, (
             f"Latest version mismatch for {ground_truth.tech}: Fetched {fetched_latest_version} != Ground truth {ground_truth.version}"
         )
-        assert latest_date.date() == ground_truth.release_date, (
-            f"Latest date mismatch for {ground_truth.tech}: Fetched {latest_date.date()} != Ground truth {ground_truth.release_date}"
+        assert latest_date == ground_truth.release_date, (
+            f"Latest date mismatch for {ground_truth.tech}: Fetched {latest_date} != Ground truth {ground_truth.release_date}"
         )
         print(
-            f"{GREEN}✓ {ground_truth.tech}: {fetched_latest_version} ({latest_date.date()}){RESET}"
+            f"{GREEN}✓ {ground_truth.tech}: {fetched_latest_version} ({latest_date}){RESET}"
         )
         ground_truths_passed += 1
 
