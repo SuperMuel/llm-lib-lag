@@ -3,6 +3,8 @@
 ![Lag per LLM](./images/lag-per-llm.png)
 ![Lag per Software](./images/lag-per-tech.png)
 
+Other vizualizations at [gpt](https://chatgpt.com/c/67a4ca60-f83c-8008-9ff0-e2960b09d8c1)
+
 This project aims to investigate and quantify the "knowledge gap" that exists in Large Language Models (LLMs) regarding the latest versions of programming languages, frameworks, and libraries. Because LLMs are trained on data up to a certain cutoff point, they are inherently unaware of updates released after that date. This project seeks to:
 
 
@@ -118,4 +120,5 @@ Generate Questions: Use an LLM to generate questions or tasks that test the LLM'
 "What is the new xyz function introduced in version X.Y.Z of [software_name]?"
 
 "How do you handle [specific scenario] in version X.Y.Z of [software_name] compared to version X.Y.W?"
+
 

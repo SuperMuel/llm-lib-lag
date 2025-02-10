@@ -26,6 +26,11 @@ GROUND_TRUTHS = [
         version="2.10.6",
         release_date=date(2025, 1, 24),
     ),
+    TechVersionGroundTruth(
+        tech=LibraryIdentifier(package_manager=PackageManager.PYPI, name="langchain"),
+        version="0.3.18",
+        release_date=date(2025, 2, 7),
+    ),
     ### Javascript ###
     TechVersionGroundTruth(
         tech=LibraryIdentifier(package_manager=PackageManager.NPM, name="axios"),
