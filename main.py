@@ -7,8 +7,61 @@ from llm_lib_lag.runner import run_single_evaluation
 from llm_lib_lag.evaluation import evaluate_runs
 from llm_lib_lag.io_utils import load_runs_from_jsonl, get_missing_runs
 from tqdm import tqdm
+import logging
+import logging.handlers
+from pathlib import Path
+from datetime import datetime
+
+
+# ------------------------------------------------------
+# Logging Configuration
+# ------------------------------------------------------
+def setup_logging(log_level: int = logging.INFO) -> None:
+    """Configure logging to both file and console with proper formatting."""
+    # Create logs directory if it doesn't exist
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+
+    # Generate log filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = log_dir / f"llm_lib_lag_{timestamp}.log"
+
+    # Create formatters and handlers
+    file_formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+    )
+    console_formatter = logging.Formatter("%(asctime)s | %(levelname)-8s | %(message)s")
+
+    # File handler
+    file_handler = logging.handlers.RotatingFileHandler(
+        log_file,
+        maxBytes=10_000_000,  # 10MB
+        backupCount=5,
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(file_formatter)
+    file_handler.setLevel(log_level)
+
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(console_formatter)
+    console_handler.setLevel(log_level)
+
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+
+    # Quiet some chatty libraries
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 
 load_dotenv()
+setup_logging()
+
+logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------
 # Globals & Constants
@@ -30,6 +83,7 @@ LLMS = [
     ),
     LLMConfig(provider="fireworks", model="accounts/fireworks/models/deepseek-v3"),
     LLMConfig(provider="perplexity", model="sonar"),
+    LLMConfig(provider="groq", model="deepseek-r1-distill-qwen-32b"),
 ]
 
 # Reusable prompt for "latest stable version"
@@ -51,7 +105,7 @@ Output your final answer for the latest version inside <answer> tags.
     ]
 )
 
-VERSION_REGEX = r"<answer>\s*(\d+\.\d+(?:\.\d+)?(?:[-.][A-Za-z0-9]+)*)\s*</answer>"
+VERSION_REGEX = r"(?s)<answer>.*?(\d+\.\d+(?:\.\d+)?(?:[-.][A-Za-z0-9]+)*).*?</answer>"
 
 # Sanity check on the regex
 assert (
@@ -68,6 +122,27 @@ assert (
     == "3.12.1"
 )
 
+assert (
+    re.search(
+        VERSION_REGEX,
+        """<answer>
+The latest stable version of pydantic is <version>2.3.3</version>.
+</answer>""",
+    ).group(1)  # type: ignore
+    == "2.3.3"
+)
+
+assert (
+    re.search(
+        VERSION_REGEX,
+        """</thinking>
+<answer>
+FastAPI version 0.110.0
+</answer>""",
+    ).group(1)  # type: ignore
+    == "0.110.0"
+)
+
 
 # ------------------------------------------------------
 # Main CLI Logic
@@ -79,21 +154,24 @@ def main() -> None:
     Usage Example:
         python main.py
     """
+    logger.info("Starting LLM version evaluation")
+
     # Load existing runs
     runs = load_runs_from_jsonl(RUNS_FILE)
+    logger.info(f"Loaded {len(runs)} existing runs from {RUNS_FILE}")
 
     # Determine which (LLM, TechVersion) combos have not yet been evaluated
     pairs_to_run = [(llm, gt) for llm in LLMS for gt in GROUND_TRUTHS]
     missing = get_missing_runs(pairs_to_run, runs)
 
     if missing:
-        print(f"Executing {len(missing)} new runs...")
+        logger.info(f"Executing {len(missing)} new runs...")
     else:
-        print("No new runs to execute.")
+        logger.info("No new runs to execute.")
 
     # Execute runs for missing pairs
     for llm_config, ground_truth in tqdm(missing, desc="Evaluating LLMs"):
-        print(f"Running {llm_config.model} for {ground_truth.tech.name}...")
+        logger.info(f"Running {llm_config.model} for {ground_truth.tech.name}...")
         run = run_single_evaluation(
             llm_config=llm_config,
             ground_truth=ground_truth,
@@ -105,10 +183,12 @@ def main() -> None:
         # Persist runs to file
         with open(RUNS_FILE, "a") as f:
             f.write(run.model_dump_json() + "\n")
-            print(f"Wrote run to {RUNS_FILE}")
+            logger.debug(f"Wrote run to {RUNS_FILE}")
 
     # Evaluate and print results
+    logger.info("Evaluating final results...")
     evaluate_runs(runs)
+    logger.info("Evaluation complete")
 
 
 if __name__ == "__main__":

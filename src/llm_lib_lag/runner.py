@@ -1,3 +1,4 @@
+import logging
 import re
 import time
 from functools import lru_cache
@@ -14,6 +15,8 @@ from .models import (
     LLMConfig,
     TechVersionGroundTruth,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1000)
@@ -77,8 +80,14 @@ def run_single_evaluation(
         )
 
     parsed_version = versions[0] if versions else None
+    assert parsed_version is None or isinstance(parsed_version, str)
 
-    print(f"{llm_config.provider}/{llm_config.model}: {parsed_version or result_str}")
+    if parsed_version is None:
+        logger.warning(
+            f"{llm_config.provider}/{llm_config.model}: Error parsing result : {result_str}"
+        )
+    else:
+        logger.info(f"{llm_config.provider}/{llm_config.model}: {parsed_version}")
 
     if parsed_version and ground_truth.release_date:
         try:
@@ -86,10 +95,10 @@ def run_single_evaluation(
             lag_days = (ground_truth.release_date - parsed_version_date).days
             parsed_version_exists = True
         except Exception as e:
-            print(f"Error fetching version date: {e}")
+            logger.warning(f"Error fetching version date: {e}")
             lag_days = None
             parsed_version_exists = False
-        print(f"Lag days: {lag_days}")
+        logger.info(f"Lag days: {lag_days}")
     else:
         lag_days = None
         parsed_version_exists = None
@@ -104,7 +113,7 @@ def run_single_evaluation(
         lag_days=lag_days,
     )
 
-    print(
+    logger.info(
         f"Run: {ground_truth.tech} - {llm_config.provider}/{llm_config.model} - {parsed_version}"
     )
 

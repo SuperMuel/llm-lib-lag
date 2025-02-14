@@ -60,7 +60,13 @@ class LLMConfig(BaseModel):
     )
 
     provider: Literal[
-        "anthropic", "openai", "google_genai", "mistralai", "fireworks", "perplexity"
+        "anthropic",
+        "openai",
+        "google_genai",
+        "mistralai",
+        "fireworks",
+        "perplexity",
+        "groq",
     ] = Field(
         ...,
         description="LLM provider (e.g., 'anthropic', 'openai')",
@@ -73,6 +79,7 @@ class LLMConfig(BaseModel):
             "gemini-1.5-flash",
             "mistral-small-2501",
             "accounts/fireworks/models/deepseek-v3",
+            "deepseek-r1-distill-qwen-32b",
         ],
     )
 
