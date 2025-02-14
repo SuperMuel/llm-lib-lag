@@ -56,8 +56,8 @@ GROUND_TRUTHS = [
         tech=LibraryIdentifier(
             package_manager=PackageManager.NPM, name="@angular/core"
         ),
-        version="19.1.5",
-        release_date=date(2025, 2, 6),
+        version="19.1.6",
+        release_date=date(2025, 2, 12),
     ),
     TechVersionGroundTruth(
         tech=LibraryIdentifier(
