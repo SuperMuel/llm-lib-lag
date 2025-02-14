@@ -2,6 +2,7 @@ import re
 import time
 from functools import lru_cache
 
+from langchain_community.chat_models import ChatPerplexity
 from langchain.chat_models import init_chat_model
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -24,8 +25,17 @@ def _initialize_llm(llm_config: LLMConfig) -> BaseChatModel:
     :param llm_config: The config specifying LLM provider and model name.
     :return: A BaseChatModel instance for inference.
     """
-
-    return init_chat_model(model=llm_config.model, model_provider=llm_config.provider)
+    match llm_config.provider:
+        case "perplexity":
+            return ChatPerplexity(
+                model=llm_config.model,
+                temperature=0,
+                timeout=None,
+            )
+        case _:
+            return init_chat_model(
+                model=llm_config.model, model_provider=llm_config.provider
+            )
 
 
 def run_single_evaluation(
@@ -59,7 +69,7 @@ def run_single_evaluation(
     elapsed = time.time() - start_time
 
     matches = re.finditer(version_regex, result_str)
-    versions = [match.group(1) for match in matches]
+    versions = list(set(match.group(1) for match in matches))
 
     if len(versions) > 1:
         raise ValueError(

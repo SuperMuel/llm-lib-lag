@@ -6,6 +6,7 @@ from llm_lib_lag.ground_truths import GROUND_TRUTHS
 from llm_lib_lag.runner import run_single_evaluation
 from llm_lib_lag.evaluation import evaluate_runs
 from llm_lib_lag.io_utils import load_runs_from_jsonl, get_missing_runs
+from tqdm import tqdm
 
 load_dotenv()
 
@@ -28,6 +29,7 @@ LLMS = [
         model="accounts/fireworks/models/qwen2p5-coder-32b-instruct",
     ),
     LLMConfig(provider="fireworks", model="accounts/fireworks/models/deepseek-v3"),
+    LLMConfig(provider="perplexity", model="sonar"),
 ]
 
 # Reusable prompt for "latest stable version"
@@ -35,19 +37,32 @@ VERSION_PROMPT = ChatPromptTemplate.from_messages(  # type: ignore
     [
         (
             "system",
-            "You are a helpful assistant that can answer questions about the latest version of a software. "
-            "You must provide a specific version number in semantic versioning format (e.g., '3.12.1', '5.0.2', '2.31.0'). "
-            "Do not use words like 'latest' or 'current' - provide the actual version number.",
+            """You are a helpful assistant that can answer questions about the latest version of a software. 
+
+You must provide a specific version number in semantic versioning format (e.g., '3.12.1', '5.0.2', '2.31.0'). 
+
+Do not use words like 'latest' or 'current' - provide the actual version number. 
+
+Write your reasoning in <thinking> tags.
+Output your final answer for the latest version inside <answer> tags.
+""",
         ),
         ("user", "What is the latest stable version of {software_name}?"),
     ]
 )
 
-VERSION_REGEX = r"(\d+\.\d+(?:\.\d+)?(?:[-.][A-Za-z0-9]+)*)"
+VERSION_REGEX = r"<answer>\s*(\d+\.\d+(?:\.\d+)?(?:[-.][A-Za-z0-9]+)*)\s*</answer>"
 
 # Sanity check on the regex
 assert (
-    re.search(VERSION_REGEX, "The latest stable version of Python is **3.12.1**").group(  # type: ignore
+    re.search(VERSION_REGEX, "<answer>3.12.1</answer>").group(  # type: ignore
+        1
+    )
+    == "3.12.1"
+)
+
+assert (
+    re.search(VERSION_REGEX, "<answer> 3.12.1 </answer>").group(  # type: ignore
         1
     )
     == "3.12.1"
@@ -77,7 +92,7 @@ def main() -> None:
         print("No new runs to execute.")
 
     # Execute runs for missing pairs
-    for llm_config, ground_truth in missing:
+    for llm_config, ground_truth in tqdm(missing, desc="Evaluating LLMs"):
         print(f"Running {llm_config.model} for {ground_truth.tech.name}...")
         run = run_single_evaluation(
             llm_config=llm_config,

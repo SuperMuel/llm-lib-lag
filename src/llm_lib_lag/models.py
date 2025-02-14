@@ -60,7 +60,7 @@ class LLMConfig(BaseModel):
     )
 
     provider: Literal[
-        "anthropic", "openai", "google_genai", "mistralai", "fireworks"
+        "anthropic", "openai", "google_genai", "mistralai", "fireworks", "perplexity"
     ] = Field(
         ...,
         description="LLM provider (e.g., 'anthropic', 'openai')",

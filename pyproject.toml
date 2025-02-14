@@ -8,6 +8,7 @@ dependencies = [
     "beautifulsoup4>=4.13.3",
     "langchain>=0.3.17",
     "langchain-anthropic>=0.3.6",
+    "langchain-community>=0.3.16",
     "langchain-fireworks>=0.2.7",
     "langchain-google-genai>=2.0.9",
     "langchain-mistralai>=0.2.6",
@@ -15,6 +16,7 @@ dependencies = [
     "pydantic>=2.10.6",
     "pytest>=8.3.4",
     "python-dotenv>=1.0.1",
+    "tqdm>=4.67.1",
 ]
 
 
