@@ -1,115 +1,121 @@
-# LLM LIB LAG (3L)
+# LLM Library Lag (3L)
 
-![Lag per LLM](./images/lag-per-llm.png)
-![Lag per Software](./images/lag-per-tech.png)
+[![Code Style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-Other vizualizations at [gpt](https://chatgpt.com/c/67a4ca60-f83c-8008-9ff0-e2960b09d8c1)
+**LLM Library Lag (3L)** quantifies the "knowledge gap" of Large Language Models (LLMs) regarding the latest versions of programming languages, frameworks, and libraries.  LLMs are trained on data up to a cutoff point, making them inherently unaware of updates released afterward.  This project provides a framework for:
 
-This project aims to investigate and quantify the "knowledge gap" that exists in Large Language Models (LLMs) regarding the latest versions of programming languages, frameworks, and libraries. Because LLMs are trained on data up to a certain cutoff point, they are inherently unaware of updates released after that date. This project seeks to:
+*   **Measuring Lag:**  Determining how far behind various LLMs are in their knowledge of specific software versions.
+*   **Evaluating Prompting Strategies:** Experimenting with different prompts to elicit accurate version information.
+*   **Visualizing Results:**  Presenting findings clearly and concisely (future enhancement: interactive dashboard).
+
+This project is particularly relevant for applications relying on LLMs for code generation, code migration, or software engineering tasks, where up-to-date dependency knowledge is critical.
+
+## Technology Stack
+
+*   **Python 3.12+**  
+*   **`uv`:**  Blazing-fast package management.
+*   **LangChain:**  Framework for interacting with LLMs.
+*   **Pydantic:**  Data validation and settings management.
+*   **Requests & BeautifulSoup:**  Fetching and parsing data from web sources.
+*   **Pytest:**  Testing framework.
+*   **Ruff:**  Extremely fast Python linter and code formatter.
+*   **Pre-commit:**  Automated code quality checks before commits.
+
+## Supported LLM Providers
+
+The project supports all LLMs currently supported by LangChain. We test the following:
+
+*   **OpenAI:**  `gpt-4o-mini`, `gpt-4o-2024-08-06`, `o3-mini-2025-01-31`
+*   **Google GenAI:** `gemini-1.5-flash`, `gemini-2.0-flash-001`, `gemini-2.0-flash-lite-preview-02-05`
+*   **Mistral AI:** `mistral-small-2501`
+*   **Anthropic:** `claude-3-5-haiku-20241022`
+*   **Fireworks AI:** `qwen2p5-coder-32b-instruct`, `deepseek-v3`
+*   **Perplexity:** `sonar`
+*   **Groq:**`deepseek-r1-distill-qwen-32b`
+
+*(Easily extendable to support other providers.)*
+
+## Supported Languages and Package Managers
+
+Currently, 3L fetches version information from the following sources:
+
+| Language / Framework          | Package Manager | Source                                      |
+| ----------------------------- | --------------- | ------------------------------------------- |
+| Python                        | PyPI            | `https://pypi.org/pypi/{library_name}/json` |
+| JavaScript / TypeScript        | NPM             | `https://registry.npmjs.org/{library_name}` |
+| Java                          | Maven Central   | `https://repo1.maven.org/maven2/...`        |
+| Ruby                          |  (Language)    |  `https://www.ruby-lang.org/en/downloads/releases/` (parsed with BeautifulSoup)|
+| Rust                          |  (Language)    |  GitHub API (rust-lang/rust)                |
+| Python                        |  (Language)         | GitHub API (actions/python-versions)            |
 
 
-Identify the Lag: Determine how far behind various LLMs are in their knowledge of specific software versions.
+The `ground_truths.py` file contains a curated list of specific libraries and frameworks, including:
 
-Evaluate Prompting Strategies: Experiment with different prompting techniques to see if it's possible to elicit more accurate version information from LLMs, even if they don't have explicit knowledge of the absolute latest release. This might involve prompts that encourage the LLM to reason about versioning schemes or to state the most recent version it knows.
+* **Python:** FastAPI, Django, SQLAlchemy, Pydantic, LangChain
+* **JavaScript:** React, Vue, Angular, TypeScript, Axios
+* **Java:** Spring Boot
+* **Ruby**
+* **Rust**
+* **Python**
 
-Automate the Evaluation: Create a system that can automatically test multiple LLMs against a set of known "ground truth" version data.
+*(Easily extendable to add more.)*
 
-Visualize the Results: Develop a web UI to display the findings in a clear and accessible way, potentially making the results publicly available.
+## Evaluation Logic
 
-Potentially Generate Benchmark Data: Explore the possibility of automatically generating benchmark data that captures the differences between software versions, which could be used for further LLM evaluation or training.
+The evaluation process involves:
 
-# Technology Stack
-- Python 3.12
-- Package Manager: UV
-- LLM interactions : Langchain
+1.  **Fetching Ground Truth:**  Retrieving the *actual* latest stable version and release date for each technology from its official source.
+2.  **Querying LLMs:**  Prompting each configured LLM to determine its knowledge of the latest version.
+3.  **Parsing Responses:**  Extracting the version string (if any) from the LLM's response using a robust regular expression.
+4.  **Calculating Metrics:**  Comparing the LLM's reported version to the ground truth and calculating:
+    *   **Exact Match Rate:**  Percentage of responses where the LLM provides the precise correct version.
+    *   **Major Version Match Rate:** Percentage of responses where the major version is correct.
+    *   **Minor Version Match Rate:** Percentage of responses where the major and minor versions are correct.
+    *   **Lag (in days):** The difference between the ground truth release date and the release date of the version reported by the LLM (if available).
+    *   **Average/Median/Max Lag:** Provides insights of the lag.
+    *   **Execution time**
+    *   **Parsed version exists**: Check if the parsed version exists.
+5.  **Reporting Results:**  Generating a summary report with overall metrics, per-LLM results, and per-technology results.
 
-## Evaluation logic
-**Metrics:**
+## Usage
 
-- Exact Match: Percentage of responses where the LLM provides the exact correct version.
-
-- Major Version Match: Percentage of responses where the major version is correct.
-
-- Minor Version Match: Percentage of responses where the major and minor versions are correct.
-
-- Version Difference: Calculate the difference (in days, weeks, or months) between the LLM's reported version and the ground truth version (if release dates are available).
-
-- Knowledge Cutoff Accuracy: If the LLM states its knowledge cutoff date, verify if that date is accurate.
-
-
-
-# Usage
-
-1.  **Run Evaluations:**
+1.  **Installation:**
 
     ```bash
-    uv run main.py
+    git clone https://github.com/SuperMuel/llm-lib-lag.git
+    cd llm-lib-lag
+    uv sync
+    pre-commit install 
     ```
 
-    This script will:
-    *   Fetch the latest version information for the technologies defined in `src/ground_truths.py`.
-    *   Query the configured LLMs (defined in `main.py`) for their knowledge of the latest versions.
-    *   Store the results (including execution time and parsed version) in `runs.jsonl`.
-    *   Print a summary of the evaluation results to the console, including exact/major/minor match rates and lag statistics.
+2.  **Configuration:**
 
-## Languages, Frameworks and Libraries
-### Python
-- Major/Minor releases (3.9, 3.10, 3.11, 3.12, 3.13).
-- FastAPI
-- SQLAlchemy 
+    Create a `.env` file in the project root and set your API keys for the LLM providers you want to use (see `env.example` for the required keys).
 
-### JavaScript
-- Latest ECMAScript versions (ES2022, ES2023, etc.)
-- Node.js LTS and Current releases.
-- Typescript ? 
+3.  **Run Evaluations:**
 
-- Frameworks 
-    - React
-    - Vue
-    - Angular, AngularJS
-    - Svelte
-    - Next.js
-    - Nuxt.js
-    - Express
+    ```bash
+    uv run python main.py
+    ```
 
-### Java
-- Java SE releases (Java 17, Java 21, etc. - the LTS versions) and potentially newer, non-LTS releases.
+    This will:
 
-- Frameworks
-    - Spring Boot
+    *   Fetch the latest version information.
+    *   Query the configured LLMs.
+    *   Store the raw results in `runs.jsonl`.
+    *   Print a summary report to the console.
 
-### C#
-- .NET releases (.NET 6, .NET 7, .NET 8).
+4.  **View Results:**
 
-### Go
-- Go releases (1.20, 1.21, etc.).
+    The raw evaluation runs are stored in `runs.jsonl`. Each line is a JSON object representing a single evaluation run.  You can analyze this file directly or use the provided evaluation logic (`evaluation.py`) to generate reports. You can also create Jupyter Notebooks to explore results.
 
-### C#
-- .NET releases (.NET 6, .NET 7, .NET 8).
+## Future Work
 
-### Rust
-- Rust releases (1.70, 1.71, etc.).
+*   **Automated Ground Truth Updates:**  Implement a mechanism to automatically update the `ground_truths.py` data (or a separate data file) by scraping or using APIs.
+*   **More LLMs and Technologies:**  Add support for more LLM providers, languages, frameworks, and libraries.
+*   **Interactive Visualization:**  Develop a web-based dashboard for exploring the results interactively.
+*   **Asynchronous Execution:** Use `asyncio` and `aiohttp` to improve performance.
 
-
-
-# Setup
-
-1. Install UV
-2. Install pre-commit hooks
-
-```
-pre-commit install
-```
-
-
-
-# Future Work
--   Automate the updating of ground truth data (scraping, API calls).
--   Experiment with different prompting strategies.
--   Add more LLMs to the evaluation.
--   Add more technologies to the evaluation.
--   Add more metrics to the evaluation.
--   Add more evaluation strategies.
 
 ### Benchmark Data Generation (Advanced):
 
@@ -124,4 +130,9 @@ Generate Questions: Use an LLM to generate questions or tasks that test the LLM'
 
 
 # Related Work
- https://dl.acm.org/doi/abs/10.1145/3674805.3690746
+ - https://dl.acm.org/doi/abs/10.1145/3674805.3690746
+
+
+ - A recent pipeline called EVOR (Su et al., 2023) demonstrated the power of RAG for code generation on tasks requiring external knowledge (Retrieval-Augmented Code Generation) (Retrieval-Augmented Code Generation). They constructed a “knowledge soup” combining web search results, documentation, and even execution feedback (like error logs) to help solve coding problems that involved updated libraries or obscure languages. By actively retrieving and updating this knowledge base during generation, EVOR achieved 2–4× higher success on tasks that standard LLMs failed (Retrieval-Augmented Code Generation).
+
+ - **VersiCode** tackles the dynamic nature of software by proposing two novel tasks: ***version-specific code completion*** and ***version-aware code migration***. Its Python dataset tests whether LLMs can adapt code to updated library versions. They introduce a metric called **Critical Diff Check (CDC@1)** to assess if generated code meets new API requirements. Experiments showed that even powerful models like GPT-4 struggle with version changes, often failing to modify code to accommodate updated libraries. This highlights a gap in existing evaluations: code migration is not just about translating between languages, but also about *keeping code correct as dependencies evolve*. VersiCode provides a focused benchmark to measure that, revealing that **version-aware migration remains a significant challenge**.
