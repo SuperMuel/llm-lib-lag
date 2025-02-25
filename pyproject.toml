@@ -28,6 +28,7 @@ llm-lib-lag = "llm_lib_lag.cli:main"
 dev = ["ipykernel>=6.29.5", "ruff>=0.9.4", "pytest>=8.0.0"]
 
 [tool.ruff]
+exclude = ["*.ipynb"]
 
 [tool.ruff.lint]
 select = [

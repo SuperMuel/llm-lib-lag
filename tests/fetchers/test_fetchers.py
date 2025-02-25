@@ -69,6 +69,25 @@ def test_ruby_versions() -> None:
     assert fetch_version_date(Language.RUBY, "1.8.0") == date(2003, 8, 4)
 
 
+def test_python_latest_stable() -> None:
+    """Test fetching latest stable Python version"""
+    version, release_date = fetch_latest_version_and_date(Language.PYTHON)
+    assert version is not None
+    assert release_date is not None
+    assert isinstance(release_date, date)
+
+    major, minor, _ = map(int, version.split(".", 2))
+    assert major > 3 or (major == 3 and minor >= 13)
+
+
+def test_python_specific_version() -> None:
+    """Test fetching specific Python version"""
+    release_date = fetch_version_date(Language.PYTHON, "3.10.16")
+    assert release_date == date(
+        2024, 12, 12
+    )  # Note : it doesn't match python.org/downloads, but github releases
+
+
 def test_dotnet_latest_stable() -> None:
     """Test fetching latest stable .NET version"""
     version, release_date = get_dotnet_latest_stable()
@@ -78,3 +97,5 @@ def test_dotnet_latest_stable() -> None:
     major, _, _ = map(int, version.split(".", 2))
     assert major >= 9
     assert release_date >= date(2025, 2, 11)
+
+

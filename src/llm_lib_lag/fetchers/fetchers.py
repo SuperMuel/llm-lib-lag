@@ -1,5 +1,8 @@
+from typing import Any
+import os
 import requests
-
+from functools import lru_cache
+from packaging.version import parse as parse_version
 from datetime import date, datetime, UTC
 from ..models import Language, LibraryIdentifier, PackageManager
 from .ruby_fetchers import get_ruby_release_date
@@ -85,6 +88,7 @@ def fetch_npm_release_date(library_name: str, version: str) -> date:
         raise LibraryVersionNotFoundError(
             library_name, version=version, package_manager=PackageManager.NPM
         )
+
     response.raise_for_status()
     data = response.json()
 
@@ -175,6 +179,18 @@ def fetch_maven_release_date(group_id: str, artifact_id: str, version: str) -> d
     return datetime.fromtimestamp(ts_millis / 1000, UTC).date()
 
 
+# def fetch_nodejs_latest_stable() -> tuple[str, date]:
+#     """Fetch the latest stable Node.js version"""
+#     url = "https://nodejs.org/dist/index.json"
+#     response = requests.get(url)
+#     response.raise_for_status()
+#     releases = response.json()
+#     lts_releases = [r for r in releases if r["lts"] is not False]
+#     latest = max(lts_releases, key=lambda x: x["date"])
+#     version = latest["version"].lstrip("v")
+#     release_date = datetime.fromisoformat(latest["date"]).date()
+#     return version, release_date
+
 
 def get_dotnet_latest_stable() -> tuple[str, date]:
     url = "https://api.github.com/repos/dotnet/core/releases"
@@ -197,6 +213,153 @@ def get_dotnet_latest_stable() -> tuple[str, date]:
     raise ValueError("No stable version found for dotnet")
 
 
+def get_dotnet_specific_version(version: str) -> tuple[str, date]:
+    """
+    Fetch the specific version of the dotnet release.
+    """
+    url = "https://api.github.com/repos/dotnet/core/releases"
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    releases = response.json()
+
+    for release in releases:
+        if (
+            release["tag_name"].lstrip("v") == version
+            and not release["prerelease"]
+            and not release["draft"]
+        ):
+            date_str = release["published_at"]
+            release_date = datetime.fromisoformat(
+                date_str.replace("Z", "+00:00")
+            ).date()
+            return version, release_date
+
+    raise LibraryVersionNotFoundError("dotnet", version=version, package_manager=None)
+
+
+@lru_cache(maxsize=1)
+def _fetch_python_versions_manifest() -> list[dict[str, Any]]:
+    """
+    Fetch and cache the Python versions manifest from GitHub Actions.
+    The cache is invalidated after the first call and will be refreshed on the next call.
+    """
+    manifest_url = "https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json"
+    response = requests.get(manifest_url)
+    response.raise_for_status()
+    versions = response.json()
+
+    # Assert versions are in descending order by version number
+    for i in range(len(versions) - 1):
+        curr_version = parse_version(versions[i]["version"])
+        next_version = parse_version(versions[i + 1]["version"])
+        assert curr_version > next_version, (
+            f"Versions not in descending order: {versions[i]['version']} <= {versions[i + 1]['version']}"
+        )
+
+    return versions
+
+
+def fetch_python_latest_stable() -> tuple[str, date]:
+    """
+    Fetch the latest stable Python version and its release date using the
+    actions/python-versions manifest and GitHub API.
+    """
+    versions = _fetch_python_versions_manifest()
+
+    # Filter for stable versions (exclude any versions containing 'rc', 'beta', or 'alpha')
+    stable_versions = [
+        v
+        for v in versions
+        if v.get("stable") is True
+        and not any(x in v["version"].lower() for x in ["rc", "beta", "alpha"])
+    ]
+
+    if not stable_versions:
+        raise ValueError("No stable Python versions found.")
+
+    # Sort stable versions in descending order by version number
+    stable_versions = sorted(
+        stable_versions, key=lambda v: parse_version(v["version"]), reverse=True
+    )
+    latest = stable_versions[0]
+    latest_version = latest["version"]
+    release_url = latest["release_url"]
+
+    # Convert the GitHub release URL to the GitHub API URL
+    # e.g. "https://github.com/actions/python-versions/releases/tag/3.13.2-13149511920"
+    # becomes "https://api.github.com/repos/actions/python-versions/releases/tags/3.13.2-13149511920"
+    api_url = release_url.replace("github.com", "api.github.com/repos").replace(
+        "/tag/", "/tags/"
+    )
+
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    api_resp = requests.get(api_url, headers=headers)
+    api_resp.raise_for_status()
+    release_data = api_resp.json()
+    published_at = release_data.get("published_at")
+    if not published_at:
+        raise ValueError(
+            f"Could not find 'published_at' in release data for Python {latest_version}"
+        )
+
+    release_date = datetime.fromisoformat(published_at.replace("Z", "+00:00")).date()
+    return latest_version, release_date
+
+
+def fetch_python_version_date(version: str) -> date:
+    """
+    Fetch the release date of a specific Python version using the actions/python-versions manifest.
+
+    Args:
+        version: The Python version to look up (e.g. "3.12.0")
+
+    Returns:
+        The release date of the specified version
+
+    Raises:
+        LibraryVersionNotFoundError: If the specified version is not found
+    """
+    versions = _fetch_python_versions_manifest()
+
+    # Find the exact version match
+    matching_versions = [v for v in versions if v["version"] == version]
+    if not matching_versions:
+        raise LibraryVersionNotFoundError("python", version=version)
+
+    version_info = matching_versions[0]
+    release_url = version_info["release_url"]
+
+    # Convert GitHub release URL to API URL
+    api_url = release_url.replace("github.com", "api.github.com/repos").replace(
+        "/tag/", "/tags/"
+    )
+    print(api_url)
+
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    api_resp = requests.get(api_url, headers=headers)
+    api_resp.raise_for_status()
+    release_data = api_resp.json()
+
+    print(release_data)
+
+    published_at = release_data.get("published_at")
+    if not published_at:
+        raise ValueError(
+            f"Could not find 'published_at' in release data for Python {version}"
+        )
+
+    return datetime.fromisoformat(published_at.replace("Z", "+00:00")).date()
+
+
 def fetch_latest_version_and_date(
     tech: LibraryIdentifier | Language,
 ) -> tuple[str, date]:
@@ -210,8 +373,6 @@ def fetch_latest_version_and_date(
             #     return fetch_nodejs_latest_stable()
             # case Language.GO:
             #     return fetch_go_latest_stable()
-            # case Language.PYTHON:
-            #     return fetch_python_latest_stable()
             # case Language.JAVA:
             #     return fetch_java_latest_stable()
             # case Language.C_SHARP:
@@ -226,6 +387,8 @@ def fetch_latest_version_and_date(
                 )
             case Language.DOTNET:
                 return get_dotnet_latest_stable()
+            case Language.PYTHON:
+                return fetch_python_latest_stable()
         raise ValueError(f"Unsupported language: {tech} to fetch latest version info")
 
     match tech.package_manager:
@@ -253,6 +416,8 @@ def fetch_version_date(identifier: LibraryIdentifier | Language, version: str) -
                     "Ruby version should not start with 'v'"
                 )
                 return get_ruby_release_date(version)
+            case Language.PYTHON:
+                return fetch_python_version_date(version)
         raise ValueError(f"Unsupported language: {identifier} to fetch version date")
     match identifier.package_manager:
         case PackageManager.NPM:

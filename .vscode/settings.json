@@ -4,5 +4,10 @@
     "editor.codeActionsOnSave": {
         "source.fixAll": "never"
     },
-    "python.analysis.diagnosticMode": "workspace"
+    "python.analysis.diagnosticMode": "workspace",
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }
