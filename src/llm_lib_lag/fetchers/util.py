@@ -1,4 +1,5 @@
 from datetime import date, datetime
+import os
 from typing import Literal
 
 import requests
@@ -26,8 +27,13 @@ def fetch_github_latest_tag(
       fetch_github_latest_tag("rust-lang", "rust")
         -> ("1.84.1", date(2025, 1, 31))
     """
+    token = os.environ.get("GITHUB_TOKEN")
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
     api_url = f"https://api.github.com/repos/{org}/{repo}/releases/latest"
-    resp = requests.get(api_url)
+    resp = requests.get(api_url, headers=headers)
     resp.raise_for_status()
 
     data = resp.json()
@@ -46,8 +52,13 @@ def fetch_github_release_date(
     tag: str,
     date_key: Literal["published_at", "created_at"] = "published_at",
 ) -> date:
+    token = os.environ.get("GITHUB_TOKEN")
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
     url = f"https://api.github.com/repos/{org}/{repo}/releases/tags/{tag}"
-    resp = requests.get(url)
+    resp = requests.get(url, headers=headers)
     resp.raise_for_status()
     data = resp.json()
     published_at = data[date_key].replace("Z", "+00:00")

@@ -28,8 +28,8 @@ GROUND_TRUTHS = [
     ),
     TechVersionGroundTruth(
         tech=LibraryIdentifier(package_manager=PackageManager.PYPI, name="langchain"),
-        version="0.3.18",
-        release_date=date(2025, 2, 7),
+        version="0.3.19",
+        release_date=date(2025, 2, 17),
     ),
     ### Javascript ###
     TechVersionGroundTruth(
@@ -56,21 +56,21 @@ GROUND_TRUTHS = [
         tech=LibraryIdentifier(
             package_manager=PackageManager.NPM, name="@angular/core"
         ),
-        version="19.1.6",
-        release_date=date(2025, 2, 12),
+        version="19.1.7",
+        release_date=date(2025, 2, 19),
     ),
     TechVersionGroundTruth(
         tech=LibraryIdentifier(
             package_manager=PackageManager.MAVEN,
             name="org.springframework.boot:spring-boot-starter-parent",
         ),
-        version="3.4.2",
-        release_date=date(2025, 1, 23),
+        version="3.4.3",
+        release_date=date(2025, 2, 20),
     ),
     TechVersionGroundTruth(
         tech=Language.RUST,
-        version="1.84.1",
-        release_date=date(2025, 1, 31),
+        version="1.85.0",
+        release_date=date(2025, 2, 20),
     ),
     TechVersionGroundTruth(
         tech=Language.PYTHON,
@@ -79,8 +79,8 @@ GROUND_TRUTHS = [
     ),
     TechVersionGroundTruth(
         tech=Language.RUBY,
-        version="3.4.1",
-        release_date=date(2024, 12, 25),
+        version="3.4.2",
+        release_date=date(2025, 2, 14),
     ),
 ]
 
@@ -106,11 +106,11 @@ if __name__ == "__main__":
             )
             continue
 
-        assert fetched_latest_version == ground_truth.version, (
-            f"Latest version mismatch for {ground_truth.tech}: Fetched {fetched_latest_version} != Ground truth {ground_truth.version}"
-        )
-        assert latest_date == ground_truth.release_date, (
-            f"Latest date mismatch for {ground_truth.tech}: Fetched {latest_date} != Ground truth {ground_truth.release_date}"
+        assert (
+            fetched_latest_version == ground_truth.version
+            and latest_date == ground_truth.release_date
+        ), (
+            f"Latest version mismatch for {ground_truth.tech}:\n    Fetched {fetched_latest_version}/{latest_date} != Ground truth {ground_truth.version}/{ground_truth.release_date}"
         )
         print(
             f"{GREEN}✓ {ground_truth.tech}: {fetched_latest_version} ({latest_date}){RESET}"

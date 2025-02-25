@@ -92,6 +92,9 @@ The evaluation process involves:
 
     Create a `.env` file in the project root and set your API keys for the LLM providers you want to use (see `env.example` for the required keys).
 
+    This repo fetches github repositories for Ruby, Rust, and more to fetch the latest version information. To avoid rate-limiting errors, you *must* set `GITHUB_TOKEN` in your `.env` file. See [GitHub Access Token Setup](#github-access-token-setup).
+
+
 3.  **Run Evaluations:**
 
     ```bash
@@ -108,6 +111,23 @@ The evaluation process involves:
 4.  **View Results:**
 
     The raw evaluation runs are stored in `runs.jsonl`. Each line is a JSON object representing a single evaluation run.  You can analyze this file directly or use the provided evaluation logic (`evaluation.py`) to generate reports. You can also create Jupyter Notebooks to explore results.
+
+
+### GitHub Access Token Setup
+
+We use the GitHub API for certain languages or libraries (e.g. Rust, Ruby, .NET). Without authentication, GitHub imposes strict rate limits, often causing `403` or “rate limit exceeded” errors. To avoid this, you need a **Personal Access Token (PAT).**
+
+1. **Go to GitHub → Settings → Developer Settings → Personal access tokens**  
+(or [follow this official guide](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token)).
+2. **Create a New Token** (classic):  
+- Choose “Generate new token (classic)”
+- Grant the “public_repo” scope (read-only access to public repositories is enough).
+- Copy the token.
+3. **Set `GITHUB_TOKEN` in your `.env`:**  
+```env
+GITHUB_TOKEN=ghp_YourTokenHere
+```
+
 
 ## Future Work
 
