@@ -113,7 +113,6 @@ The evaluation process involves:
 
 *   **Automated Ground Truth Updates:**  Implement a mechanism to automatically update the `ground_truths.py` data (or a separate data file) by scraping or using APIs.
 *   **More LLMs and Technologies:**  Add support for more LLM providers, languages, frameworks, and libraries.
-*   **Interactive Visualization:**  Develop a web-based dashboard for exploring the results interactively.
 *   **Asynchronous Execution:** Use `asyncio` and `aiohttp` to improve performance.
 
 
@@ -127,6 +126,20 @@ Generate Questions: Use an LLM to generate questions or tasks that test the LLM'
 
 "How do you handle [specific scenario] in version X.Y.Z of [software_name] compared to version X.Y.W?"
 
+### Interactive Visualization
+Goal : Develop a web-based dashboard for exploring the results interactively.
+
+- [ ] Develop and publish a dashboard for exploring the results interactively.
+- [ ] Add a leaderboard showcasing the best performing LLMs.
+- [ ] Allow users to filter by LLMs, languages, frameworks...
+- [ ] Allow users to submit their own LLMs and libraries to the benchmark.
+
+**Tech Stack:**
+UI : Probably Streamlit
+Backend : Probably FastAPI
+DB/DATA : 
+
+
 
 
 # Related Work
@@ -136,3 +149,22 @@ Generate Questions: Use an LLM to generate questions or tasks that test the LLM'
  - A recent pipeline called EVOR (Su et al., 2023) demonstrated the power of RAG for code generation on tasks requiring external knowledge (Retrieval-Augmented Code Generation) (Retrieval-Augmented Code Generation). They constructed a “knowledge soup” combining web search results, documentation, and even execution feedback (like error logs) to help solve coding problems that involved updated libraries or obscure languages. By actively retrieving and updating this knowledge base during generation, EVOR achieved 2–4× higher success on tasks that standard LLMs failed (Retrieval-Augmented Code Generation).
 
  - **VersiCode** tackles the dynamic nature of software by proposing two novel tasks: ***version-specific code completion*** and ***version-aware code migration***. Its Python dataset tests whether LLMs can adapt code to updated library versions. They introduce a metric called **Critical Diff Check (CDC@1)** to assess if generated code meets new API requirements. Experiments showed that even powerful models like GPT-4 struggle with version changes, often failing to modify code to accommodate updated libraries. This highlights a gap in existing evaluations: code migration is not just about translating between languages, but also about *keeping code correct as dependencies evolve*. VersiCode provides a focused benchmark to measure that, revealing that **version-aware migration remains a significant challenge**.
+
+### HumanEval (OpenAI, 2021)
+- HumanEval only evaluates Python code generation for small functions.
+- HumanEval do not involve dependencies.
+
+### MBPP (Mostly Basic Programming Problems, Google, 2021)
+
+### SWE-Bench (Princeton, 2023)
+- SWE-Bench is focused on Python only.
+- Implicit Dependency Handling: SWE-Bench implicitly requires the LLM to understand dependencies (to fix bugs), but it doesn't explicitly evaluate version knowledge.
+
+
+
+ ### VersiCode
+
+### [Codeium Live](https://codeium.com/live)
+
+![image](images/codeium-live-lag-langchain.png)
+![image](images/codeium-live-lag-nextjs.png)
