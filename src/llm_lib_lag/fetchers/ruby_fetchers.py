@@ -198,10 +198,6 @@ def fetch_ruby_releases() -> dict[str, date]:
     """
     url = "https://www.ruby-lang.org/en/downloads/releases/"
     resp = requests.get(url)
-    print(resp.text)
-    # Write to file
-    with open("ruby_releases.html", "w") as f:
-        f.write(resp.text)
     resp.raise_for_status()
     return parse_ruby_releases(resp.text)
 

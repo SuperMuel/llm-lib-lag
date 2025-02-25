@@ -18,12 +18,13 @@ class PackageManager(str, Enum):
 
 class Language(str, Enum):
     PYTHON = "python"
-    JAVASCRIPT = "javascript"
+    NODEJS = "nodejs"
     RUBY = "ruby"
     JAVA = "java"
     C_SHARP = "csharp"
     GO = "go"
     RUST = "rust"
+    DOTNET = "dotnet"
 
     @property
     def name(self) -> str:

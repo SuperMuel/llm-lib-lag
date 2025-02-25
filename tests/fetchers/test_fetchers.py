@@ -7,6 +7,7 @@ from llm_lib_lag.fetchers.fetchers import (
     fetch_pypi_version_info,
     fetch_latest_version_and_date,
     fetch_version_date,
+    get_dotnet_latest_stable,
 )
 from llm_lib_lag.models import Language, LibraryIdentifier, PackageManager
 
@@ -66,3 +67,14 @@ def test_ruby_versions() -> None:
     assert fetch_version_date(Language.RUBY, "3.2.0") == date(2022, 12, 25)
     assert fetch_version_date(Language.RUBY, "2.1.5") == date(2014, 11, 13)
     assert fetch_version_date(Language.RUBY, "1.8.0") == date(2003, 8, 4)
+
+
+def test_dotnet_latest_stable() -> None:
+    """Test fetching latest stable .NET version"""
+    version, release_date = get_dotnet_latest_stable()
+    assert version is not None
+    assert release_date is not None
+    assert isinstance(release_date, date)
+    major, _, _ = map(int, version.split(".", 2))
+    assert major >= 9
+    assert release_date >= date(2025, 2, 11)

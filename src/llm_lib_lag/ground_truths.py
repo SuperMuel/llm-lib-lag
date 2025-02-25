@@ -82,6 +82,11 @@ GROUND_TRUTHS = [
         version="3.4.2",
         release_date=date(2025, 2, 14),
     ),
+    TechVersionGroundTruth(
+        tech=Language.DOTNET,
+        version="9.0.2",
+        release_date=date(2025, 2, 11),
+    ),
 ]
 
 if __name__ == "__main__":

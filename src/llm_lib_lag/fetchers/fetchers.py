@@ -175,6 +175,28 @@ def fetch_maven_release_date(group_id: str, artifact_id: str, version: str) -> d
     return datetime.fromtimestamp(ts_millis / 1000, UTC).date()
 
 
+
+def get_dotnet_latest_stable() -> tuple[str, date]:
+    url = "https://api.github.com/repos/dotnet/core/releases"
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    releases = response.json()
+    for release in releases:
+        if (
+            not release["prerelease"]
+            and not release["draft"]
+            and release["tag_name"].startswith("v")
+        ):
+            version = release["tag_name"].lstrip("v")
+            date_str = release["published_at"]
+            release_date = datetime.fromisoformat(
+                date_str.replace("Z", "+00:00")
+            ).date()
+            return version, release_date
+    raise ValueError("No stable version found for dotnet")
+
+
 def fetch_latest_version_and_date(
     tech: LibraryIdentifier | Language,
 ) -> tuple[str, date]:
@@ -184,20 +206,27 @@ def fetch_latest_version_and_date(
     """
     if isinstance(tech, Language):
         match tech:
+            # case Language.NODEJS:
+            #     return fetch_nodejs_latest_stable()
+            # case Language.GO:
+            #     return fetch_go_latest_stable()
+            # case Language.PYTHON:
+            #     return fetch_python_latest_stable()
+            # case Language.JAVA:
+            #     return fetch_java_latest_stable()
+            # case Language.C_SHARP:
+            #     return get_c_sharp_latest_stable()
             case Language.RUST:
                 return fetch_github_latest_tag(
                     "rust-lang", "rust", version_key="tag_name"
-                )
-            case Language.PYTHON:
-                return fetch_github_latest_tag(
-                    "actions", "python-versions", version_key="name"
                 )
             case Language.RUBY:
                 return fetch_github_latest_tag(
                     "ruby", "ruby", version_key="name", date_key="created_at"
                 )
-            case _:
-                raise ValueError(f"Unsupported language: {tech}")
+            case Language.DOTNET:
+                return get_dotnet_latest_stable()
+        raise ValueError(f"Unsupported language: {tech} to fetch latest version info")
 
     match tech.package_manager:
         case PackageManager.NPM:
@@ -207,7 +236,10 @@ def fetch_latest_version_and_date(
             return fetch_maven_version_info(group_id, artifact_id)
         case PackageManager.PYPI:
             return fetch_pypi_version_info(tech.name)
-    raise ValueError(f"Unsupported package manager: {tech.package_manager}")
+
+    raise ValueError(
+        f"Unsupported package manager: {tech.package_manager} to fetch latest version info"
+    )
 
 
 def fetch_version_date(identifier: LibraryIdentifier | Language, version: str) -> date:
@@ -221,8 +253,7 @@ def fetch_version_date(identifier: LibraryIdentifier | Language, version: str) -
                     "Ruby version should not start with 'v'"
                 )
                 return get_ruby_release_date(version)
-            case _:
-                raise ValueError(f"Unsupported language: {identifier}")
+        raise ValueError(f"Unsupported language: {identifier} to fetch version date")
     match identifier.package_manager:
         case PackageManager.NPM:
             return fetch_npm_release_date(identifier.name, version)
@@ -231,8 +262,7 @@ def fetch_version_date(identifier: LibraryIdentifier | Language, version: str) -
             return fetch_maven_release_date(group_id, artifact_id, version)
         case PackageManager.PYPI:
             return fetch_pypi_release_date(identifier.name, version)
-        # Add more logic for other package managers (MAVEN, etc.)
-        case _:
-            raise ValueError(
-                f"Unsupported package manager: {identifier.package_manager}"
-            )
+
+    raise ValueError(
+        f"Unsupported package manager: {identifier.package_manager} to fetch version date"
+    )
